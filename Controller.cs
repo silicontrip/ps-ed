@@ -4,6 +4,10 @@ using System.Management.Automation.Host;
 
 namespace GNUed {
 
+	public interface Command {
+		Command parse (string Line);
+	}
+
 	public class Controller {
 
 		enum InputMode {
@@ -14,6 +18,7 @@ namespace GNUed {
 		}
 
 		private Document buffer;
+		private Command currentMode;
 		private Int32 currentLine;
 		private List<string> cutBuffer;
 		private Dictionary<string,Int32> markBuffer;
@@ -24,8 +29,9 @@ namespace GNUed {
 		InputMode mode;
 		string prompt;
 		List<string> undoCommands; // tricky??
+		private static Controller instance=null;
 
-		public Controller()
+		private  Controller()
 		{
 			cutBuffer = new List<string>();
 			markBuffer = new Dictionary<string,Int32>();
@@ -35,28 +41,65 @@ namespace GNUed {
 			verboseErrorMode = false;
 			mode = command;
 			prompt = "";
+
+			currentMode = new CommandMode(this);
 		}
 
-		public setDocument (Document d)
+		public static Controller Instance
+		{
+			get
+			{
+				if (instance==null)
+				{
+					instance = new Controller();
+				}
+				return instance;
+			}
+		}
+
+
+		public void setDocument (Document d)
 		{
 			buffer = d;
 			currentLine = buffer.GetLineLength();
 		}
 
+		public Document getDocument() { return buffer; }
+
+		public void setPrompt (string p) { prompt = p; }
+
+		public void setCurrentLine(Int32 l) { currentLine = l; }
+		public Int32 getCurrentLine() { return currentLine; }
+
+		public string
+
 		public void Start()
 		{
-			while (true)
+			while (!currentMode.exit())
 			{
+				// prompt
+				Console.write(prompt);
 				string result = Host.UI.ReadLine();
 
-				// conditional logic; which mode
-				// input {
-				// if result != '.' 
-				//	read buffer += result
-				// else 
-				// mode = command. 
-			
+				try {
+					currentMode = currentMode.parse(result);  // circular dependancy
+				} catch (Exception e) {
+					lastError = e.Message;
+					if (verboseErrorMode) {
+						Console.writeline(lastError);
+					}
+
+				}
 			}
 		}
+
+		public class CommandMode : Command {
+		// A bunch of stuff
+			public Command parse (string line)
+			{
+
+
+			}
+	}
 	}
 }
