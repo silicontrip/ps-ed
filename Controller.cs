@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Management.Automation;
 using System.Management.Automation.Host;
+// using System.Runtime;
 using System.Text.RegularExpressions;
+// using Microsoft.PowerShell;
 
-// using Document;
+
+//using Document;
 
 namespace GNUed {
 
@@ -29,6 +31,7 @@ namespace GNUed {
 		string prompt;
 		List<string> undoCommands; // tricky??
 		private static Controller instance=null;
+		private PSHostUserInterface ui;
 
 		private Controller()
 		{
@@ -40,6 +43,8 @@ namespace GNUed {
 			verboseErrorMode = false;
 		//	mode = command;
 			prompt = "";
+
+		// ui = Host.UI;
 
 			currentMode = new CommandMode();
 		}
@@ -56,19 +61,20 @@ namespace GNUed {
 			}
 		}
 
+		public void SetUI (PSHostUserInterface u) { ui = u;  }
 
-		public void setDocument (Document d)
+		public void SetDocument (Document d)
 		{
 			buffer = d;
 			currentLine = buffer.GetLineLength();
 		}
 
-		public Document getDocument() { return buffer; }
+		public Document GetDocument() { return buffer; }
 
-		public void setPrompt (string p) { prompt = p; }
+		public void SetPrompt (string p) { prompt = p; }
 
-		public void setCurrentLine(Int32 l) { currentLine = l; }
-		public Int32 getCurrentLine() { return currentLine; }
+		public void SetCurrentLine(Int32 l) { currentLine = l; }
+		public Int32 GetCurrentLine() { return currentLine; }
 
 		// public string
 
@@ -78,8 +84,9 @@ namespace GNUed {
 			{
 				// prompt
 				Console.Write(prompt);
-			//	string result = Host.UI.ReadLine();
-				string result = PSHostUserInterface.ReadLine();
+				//string result = Host.UI.ReadLine();
+
+				string result = ui.ReadLine();
 				try {
 					currentMode = currentMode.parse(result);  // circular dependancy
 				} catch (Exception e) {

@@ -1,6 +1,6 @@
 using System;
-using Controller;
-using Document;
+using System.Management.Automation;
+using System.Management.Automation.Host;
 
  namespace GNUed {
  
@@ -9,6 +9,12 @@ using Document;
     {
 
 		Controller cc;
+
+        public
+        edMain()
+        {
+            // empty, provided per design guidelines.
+        }
 
         [Alias("FullName")]
         [Parameter(Position = 0, ValueFromPipelineByPropertyName = true)]
@@ -19,9 +25,17 @@ using Document;
         }
         private string path;
 
-        protected override void ProcessRecord()
+        protected override void BeginProcessing()
         {
+			PSHostUserInterface ui = Host.UI;
+
 			cc = new Controller();
+			cc.SetUI(ui);
+			cc.SetPrompt("");
+			if (path.Length > 0)
+				cc.SetDocument(new Document(path));
+
+			cc.Start();
 		}
 	}
  }
