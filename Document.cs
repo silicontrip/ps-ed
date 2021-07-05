@@ -1,14 +1,18 @@
-	using System;
-	using System.Collections.Generic;
-	using System.IO;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
-	namespace GNUed {
+namespace GNUed {
 
 	public class Document {
 
 		private List<string> buffer;
 		private string filename;
 		private bool unsaved;
+		private Encoding readWriteEncoding;
 
 		public Document()
 		{
@@ -19,10 +23,11 @@
 
 		public Document(string filename)
 		{
+			readWriteEncoding = new ASCIIEncoding();
 			Edit(filename);
 		}
 
-		public IEnumerable<Int32> Append (List<string> append,Int32 after)
+		public IEnumerable<Int32> Append (List<string> append, Int32 after)
 		{
 			unsaved = true;
 			// insert lines after
@@ -37,7 +42,7 @@
 			// return array with after+1 + append.length
 		}
 
-		public IEnumerable<Int32> Change (List<string> append,Int32 startLine, Int32 toLine)
+		public IEnumerable<Int32> Change (List<string> append, Int32 startLine, Int32 toLine)
 		{
 			unsaved = true;
 
@@ -69,11 +74,21 @@
 
 		public IEnumerable<Int32> Edit (string filename)
 		{
+
+			if (this.filename.Length==0 && filename.Length>0)
+				this.filename = filename;
+
+			if (filename.Length>0)
+				filename = this.filename;
+
+			if (filename.Length==0)
+				throw new Exception("no current filename");
+
 			// new buffer
-					buffer = new List<string>();
+			buffer = new List<string>();
 
 			// unsaved = false
-					unsaved=false;
+			unsaved=false;
 
 			// read file or command
 			if (filename.StartsWith('!'))
@@ -81,8 +96,9 @@
 				; // do something
 			} else {
 				// System.Text.UTF8Encoding
-	// System.Text.ASCIIEncoding
-				buffer = ReadAllLines(filename,System.Text.ASCIIEncoding);  // yes we'll allow it to throw.
+				// System.Text.ASCIIEncoding
+
+				buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));  // yes we'll allow it to throw.
 				this.filename = filename;
 			}
 			// set filename
@@ -92,9 +108,9 @@
 
 		}
 
-		public IEnumerable<Int32> Insert (List<string> append,Int32 before)
+		public IEnumerable<Int32> Insert (List<string> append, Int32 before)
 		{
-					unsaved = true;
+			unsaved = true;
 
 			// insert lines before 
 			buffer.InsertRange(before-1,append);
@@ -105,17 +121,20 @@
 
 		public IEnumerable<Int32> Join (Int32 startLine, Int32 toLine)
 		{
-					unsaved = true;
+			unsaved = true;
 
 			string singleLine = buffer[startLine-1];
 			for (Int32 line=startLine; line<=toLine;  line++)
 				singleLine += " " + buffer[line];
-			return Change ( singleLine , startLine, toLine)
+
+			List<string> replacement = new List<string>();
+			replacement.Add(singleLine);
+			return Change ( replacement , startLine, toLine);
 		}
 
 		public IEnumerable<Int32> Move (Int32 startLine, Int32 endLine, Int32 toLine)
 		{
-					unsaved = true;
+			unsaved = true;
 
 			// lines = buffer[startLine,endLine]
 			List<string> lines = buffer.GetRange(startLine-1,endLine-startLine+1);
@@ -127,58 +146,112 @@
 
 		public IEnumerable<Int32> Read (string filename, Int32 startLine)
 		{
-					unsaved = true;
+			unsaved = true;
 
-			// if (!this.filename &&  filename)
-			//		this.filename = filename
-			// if (!filename)
-			//	filename = this.filename
+			if (this.filename.Length==0 && filename.Length>0)
+				this.filename = filename;
+
+			if (filename.Length>0)
+				filename = this.filename;
+
+			if (filename.Length==0)
+				throw new Exception("no current filename");
 
 			// lines = read(filename)
-			// return Append (lines,startLine)
+			List<string>lines = new List<string>(File.ReadAllLines(filename,readWriteEncoding));  // yes we'll allow it to throw.
+
+			return Append (lines,startLine);
 
 		}
 
-		public IEnumerable<Int32> Replace (string regex, string replacement, Int32 startLine,Int32 endline, int count)
+		public IEnumerable<Int32> Replace (string regex, string replacement, Int32 startLine,Int32 endLine, int count)
 		{
-					unsaved = true;
+			unsaved = true;
 
 			// global = (count == 0)
 			// make regex
+
+			Regex search = new Regex (regex);
+
 			// new modified array
+			List<Int32> modified = new List<Int32>();
 			// for line = startline to endLine
+			for (Int32 line = startLine; line < endLine; line++)
+			{
+				if (search.IsMatch(buffer[line-1]))
+				{
+					string replaced = search.Replace(buffer[line-1], replacement, count, 0);
+					buffer[line-1] = replaced;
+					modified.Add(line);
+				}
+			}
 			// 	if match 
 			//		replace
 			//		modified += line
-			// return modified
+			return modified;
 		}
 
 		public IEnumerable<Int32> Transfer (Int32 startLine, Int32 endLine, Int32 toLine)
 		{
-					unsaved = true;
-
+			unsaved = true;
 			// lines = buffer[startLine,endLine]
-			// Append (lines,toLine)
-			// return [startLine,toLine]
+			List<string> lines = buffer.GetRange(startLine-1,endLine-startLine+1);
+			return Append (lines,toLine);
 		}
 
-			public IEnumerable<Int32> Write (string file, Int32 startLine, Int32 endLine)
+			public IEnumerable<Int32> Write (string filename, Int32 startLine, Int32 endLine)
 		{
 			// default filename voodoo
+
+			if (this.filename.Length==0 && filename.Length>0)
+				this.filename = filename;
+
+			if (filename.Length>0)
+				filename = this.filename;
+
+			if (filename.Length==0)
+				throw new Exception("no current filename");
+
 			// lines = buffer[startLine,endLine]
+
 			// write file or command pipe
 			// if file 
+
+			List<string> lines = buffer.GetRange(startLine-1,endLine-startLine+1);
+
+
+			File.WriteAllLines(filename, lines.ToArray());
+
 			unsaved = false;
+
+			return Enumerable.Range(startLine, endLine);
+
 		}
 
-			public IEnumerable<Int32> WriteAppend (Int32 startLine, Int32 endLine, Int32 toLine)
+		public IEnumerable<Int32> WriteAppend (string filename, Int32 startLine, Int32 endLine)
 		{
 			//
+			if (this.filename.Length==0 && filename.Length>0)
+				this.filename = filename;
+
+			if (filename.Length>0)
+				filename = this.filename;
+
+			if (filename.Length==0)
+				throw new Exception("no current filename");
+
+			List<string> lines = buffer.GetRange(startLine-1,endLine-startLine+1);
+
+			StreamWriter file = new StreamWriter(filename, append: true);
+			foreach (string ll in lines)
+				file.WriteLine(ll);
 
 			// lines = buffer[startLine,endLine]
 			// append file 
 			// if file 
 			unsaved = false;
+			return Enumerable.Range(startLine, endLine);
+
 		}
 
 		public string GetFilename() { return this.filename; }
@@ -187,12 +260,12 @@
 		{
 			Int32 total = 0;
 			foreach (string ss in buffer)
-				total += ss.length + 1;
+				total += ss.Length + 1;
 			return total;
 		}
-		public Int32 GetLineLength() { return buffer.count; }
+		public Int32 GetLineLength() { return buffer.Count; }
 
 		public bool isUnsaved() { return unsaved; }
 
 	}
-	}
+}
