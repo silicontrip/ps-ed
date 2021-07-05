@@ -108,15 +108,15 @@ If file is prefixed with a bang (!), then it is interpreted as a shell command a
 | (.+1)`<newline>` | **Null command.** An address alone prints the addressed line. A `<newline>` alone is equivalent to '+1p'. The current address is set to the address of the printed line. |
 
 
+## Options (Probably not all relevant to PowerShell)
 
-
--Version
--ExtendedRegexp
--Traditional
--LooseExit
--Prompt
--Restricted
--Quiet (-Silent)
--Verbose
+* -Version
+* -ExtendedRegexp
+* -Traditional
+* -LooseExit
+* -Prompt
+* -Restricted
+* -Quiet (-Silent)
+* -Verbose
 
 

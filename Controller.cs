@@ -100,6 +100,19 @@ namespace GNUed {
 
 
 			}
-	}
+		}
+
+		public class InputMode : Command {
+			private List<string> buffer;
+			public InputMode() { buffer = new List<string>(); }
+			public Command parse (string line) {
+				if (line == ".") {
+					return new CommandMode();
+				} else {
+					buffer.Add(line);
+					return this;
+				}
+			}
+		}
 	}
 }
