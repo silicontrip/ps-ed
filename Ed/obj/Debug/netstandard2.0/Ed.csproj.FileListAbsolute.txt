@@ -1,0 +1,8 @@
+/Users/mark/Documents/20210421-ed/Ed/obj/Debug/netstandard2.0/Ed.csprojAssemblyReference.cache
+/Users/mark/Documents/20210421-ed/Ed/obj/Debug/netstandard2.0/Ed.AssemblyInfoInputs.cache
+/Users/mark/Documents/20210421-ed/Ed/obj/Debug/netstandard2.0/Ed.AssemblyInfo.cs
+/Users/mark/Documents/20210421-ed/Ed/bin/Debug/netstandard2.0/Ed.deps.json
+/Users/mark/Documents/20210421-ed/Ed/bin/Debug/netstandard2.0/Ed.dll
+/Users/mark/Documents/20210421-ed/Ed/bin/Debug/netstandard2.0/Ed.pdb
+/Users/mark/Documents/20210421-ed/Ed/obj/Debug/netstandard2.0/Ed.dll
+/Users/mark/Documents/20210421-ed/Ed/obj/Debug/netstandard2.0/Ed.pdb

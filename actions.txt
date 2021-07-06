@@ -1,0 +1,5 @@
+# Actions as command line
+
+Append -fromLine
+Change -fromLine -toLine
+Delete -fromLine -toLine

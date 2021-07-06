@@ -1,0 +1,3 @@
+/Users/mark/Documents/20210421-ed/obj/Debug/netstandard2.0/Ed.csprojAssemblyReference.cache
+/Users/mark/Documents/20210421-ed/obj/Debug/netstandard2.0/Ed.AssemblyInfoInputs.cache
+/Users/mark/Documents/20210421-ed/obj/Debug/netstandard2.0/Ed.AssemblyInfo.cs

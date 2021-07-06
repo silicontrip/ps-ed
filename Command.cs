@@ -6,12 +6,9 @@ namespace GNUed {
 
 		public static class AppendAction : Action {
 
-			public static bool match (string s)
-			{
-				// return (string test && something something)
-			}
+			public string CommandId = "a";
 
-			public static void exec (string s)
+			public static List<string> GetArgs (string s)
 			{
 				// address = get address
 			}
