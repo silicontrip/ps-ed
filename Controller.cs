@@ -70,9 +70,7 @@ namespace GNUed {
 		}
 
 		public Document GetDocument() { return buffer; }
-
 		public void SetPrompt (string p) { prompt = p; }
-
 		public void SetCurrentLine(Int32 l) { currentLine = l; }
 		public Int32 GetCurrentLine() { return currentLine; }
 
@@ -125,10 +123,13 @@ namespace GNUed {
 				foreach (Match match in matches)
 				{
 					GroupCollection groups = match.Groups;
+					Console.WriteLine("match groups: {0}",groups);
+					/*
 					Console.WriteLine("'{0}' repeated at positions {1} and {2}",
 						groups["word"].Value,
 						groups[0].Index,
 						groups[1].Index);
+						*/
 				}
 				return this;
 			}
