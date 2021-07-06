@@ -91,7 +91,7 @@ namespace GNUed {
 			unsaved=false;
 
 			// read file or command
-			if (filename.StartsWith('!'))
+			if (filename.StartsWith("!"))
 			{
 				; // do something
 			} else {
