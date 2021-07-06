@@ -7,7 +7,12 @@
 
   <ItemGroup>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-06">
-      <PrivateAssets>All</PrivateAssets>
+      <!-- <PrivateAssets>All</PrivateAssets> -->
+	  <PrivateAssets>
+	  <Compile Include="Ed.cs" />
+	  <Compile Include="Controller.cs" />
+	  <Compile Include="Document.cs" />
+	  </PrivateAssets>
     </PackageReference>
   </ItemGroup>
 

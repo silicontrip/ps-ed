@@ -207,11 +207,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/mark/Documents/20210421-ed/Ed/Ed.csproj",
+      "projectUniqueName": "/Users/mark/Documents/20210421-ed/ed/Ed.csproj",
       "projectName": "Ed",
-      "projectPath": "/Users/mark/Documents/20210421-ed/Ed/Ed.csproj",
+      "projectPath": "/Users/mark/Documents/20210421-ed/ed/Ed.csproj",
       "packagesPath": "/Users/mark/.nuget/packages/",
-      "outputPath": "/Users/mark/Documents/20210421-ed/Ed/obj/",
+      "outputPath": "/Users/mark/Documents/20210421-ed/ed/obj/",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "/usr/local/share/dotnet/sdk/NuGetFallbackFolder"
@@ -246,7 +246,7 @@
             "autoReferenced": true
           },
           "PowerShellStandard.Library": {
-            "suppressParent": "All",
+            "suppressParent": "None",
             "target": "Package",
             "version": "[5.1.0-preview-06, )"
           }

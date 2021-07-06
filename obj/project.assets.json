@@ -246,7 +246,7 @@
             "autoReferenced": true
           },
           "PowerShellStandard.Library": {
-            "suppressParent": "All",
+            "suppressParent": "None",
             "target": "Package",
             "version": "[5.1.0-preview-06, )"
           }
