@@ -2,19 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation.Host;
 // using System.Runtime;
-using System.Text.RegularExpressions;
+// using System.Text.RegularExpressions;
 // using Microsoft.PowerShell;
 
 
 //using Document;
 
 namespace GNUed {
-
-	public interface Command {
-		Command parse (string Line);
-		bool exit();
-	//	List<Int32> getRange(string address);
-	}
 
 	public class Controller {
 
@@ -32,9 +26,12 @@ namespace GNUed {
 		List<string> undoCommands; // tricky??
 		private static Controller instance=null;
 		private PSHostUserInterface ui;
+	//	private Regex commandMatch;
+		private bool exitControl;
 
 		private Controller()
 		{
+			exitControl = false;
 			cutBuffer = new List<string>();
 			markBuffer = new Dictionary<string,Int32>();
 			lastReplaceRegex = "";
@@ -42,10 +39,7 @@ namespace GNUed {
 			lastError="";
 			verboseErrorMode = false;
 		//	mode = command;
-			prompt = "";
-
-		// ui = Host.UI;
-
+			prompt = "";              
 			currentMode = new CommandMode();
 		}
 
@@ -61,7 +55,7 @@ namespace GNUed {
 			}
 		}
 
-		public void SetUI (PSHostUserInterface u) { ui = u;  }
+		public void SetUI (PSHostUserInterface u) { ui = u; }
 
 		public void SetDocument (Document d)
 		{
@@ -74,11 +68,9 @@ namespace GNUed {
 		public void SetCurrentLine(Int32 l) { currentLine = l; }
 		public Int32 GetCurrentLine() { return currentLine; }
 
-		// public string
-
 		public void Start()
 		{
-			while (!currentMode.exit())
+			while (!exitControl)
 			{
 				// prompt
 				Console.Write(prompt);
@@ -86,7 +78,7 @@ namespace GNUed {
 
 				string result = ui.ReadLine();
 				try {
-					currentMode = currentMode.parse(result);  // circular dependancy
+					currentMode.parse(result);  // circular dependancy
 				} catch (Exception e) {
 					lastError = e.Message;
 					if (verboseErrorMode) {
@@ -94,80 +86,8 @@ namespace GNUed {
 					} else {
 						Console.WriteLine("?");
 					}
-
 				}
 			}
-		}
-
-		public class CommandMode : Command {
-		// A bunch of stuff
-
-			Regex commandMatch;
-			bool exitReady;
-			// Regex singleAddress;
-			Regex rangeAddress;
-
-			public CommandMode() {
-				commandMatch = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
-				// singleAddress = new Regex("\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z]");
-				// rangeAddress = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*",RegexOptions.Compiled);
-				exitReady = false;
-			}
-
-			public Command parse (string line)
-			{
-				MatchCollection commandParameters = commandMatch.Matches(line);
-				//MatchCollection address = rangeAddress.Matches(line);
-				// Report the number of matches found.
-
-				if (commandParameters.Count != 1) {
-					throw new Exception("invalid address");
-				} else {
-					Match command = commandParameters[0];
-					GroupCollection gc = command.Groups;
-
-					string cmd = gc["command"];
-					string cmdStart = gc["start"];
-					string cmdEnd = gc["end"];
-					string cmdParam = gc["parameter"];
-
-					Command current = CommandList[cmd];
-
-					if (!current.validate(cmdStart,cmdEnd,cmdParam))
-					{
-						throw new Exception("invalid address");
-					}
-
-				}
-				Console.WriteLine("{0} matches found in:{1}",
-					commandParameters.Count,
-					line);
-				foreach (Match match in commandParameters)
-				{
-					GroupCollection groups = match.Groups;
-					Console.WriteLine("command: {0} param: {1}  range: {2}..{3}",groups["command"],groups["parameter"],groups["start"],groups["end"]);
-					
-				}
-
-				return this;
-			}
-
-			public bool exit() { return exitReady; }
-		}
-
-		public class InputMode : Command {
-			private List<string> buffer;
-			public InputMode() { buffer = new List<string>(); }
-			public Command parse (string line) {
-				if (line == ".") {
-					
-					return new CommandMode();
-				} else {
-					buffer.Add(line);
-					return this;
-				}
-			}
-			public bool exit() { return false; }
 		}
 	}
 }
