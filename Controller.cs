@@ -106,30 +106,30 @@ namespace GNUed {
 			Regex rangeAddress;
 
 			public CommandMode() {
-				commandMatch = new Regex(@"^[^']*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter>.*)$",RegexOptions.Compiled);
+				commandMatch = new Regex(@"^(.*([^'a-z]|'[a-z]))*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter>.*)$",RegexOptions.Compiled);
 				// singleAddress = new Regex("\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z]");
-				rangeAddress = new Regex(@"(?<start>[^,;]*|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])(?<seperator>[,;]*)(?<end>[^,;]*|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])",RegexOptions.Compiled);
+				rangeAddress = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*",RegexOptions.Compiled);
 				exitReady = false;
 			}
 
 			public Command parse (string line)
 			{
-				MatchCollection matches = commandMatch.Matches(line);
-
+				MatchCollection commandParameters = commandMatch.Matches(line);
+				MatchCollection address = rangeAddress.Matches(line);
 				// Report the number of matches found.
 				Console.WriteLine("{0} matches found in:\n   {1}",
-					matches.Count,
+					commandParameters.Count,
 					line);
-				foreach (Match match in matches)
+				foreach (Match match in commandParameters)
 				{
 					GroupCollection groups = match.Groups;
-					Console.WriteLine("match groups: {0}",groups);
-					/*
-					Console.WriteLine("'{0}' repeated at positions {1} and {2}",
-						groups["word"].Value,
-						groups[0].Index,
-						groups[1].Index);
-						*/
+					Console.WriteLine("command: {0} : {1}",groups["command"],groups["parameter"]);
+					
+				}
+				foreach (Match match in address) {
+					GroupCollection groups = match.Groups;
+					Console.WriteLine("range: start {0} : end {1}",groups["start"],groups["end"]);
+					
 				}
 				return this;
 			}
