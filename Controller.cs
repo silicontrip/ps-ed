@@ -91,6 +91,8 @@ namespace GNUed {
 					lastError = e.Message;
 					if (verboseErrorMode) {
 						Console.WriteLine(lastError);
+					} else {
+						Console.WriteLine("?");
 					}
 
 				}
@@ -106,31 +108,47 @@ namespace GNUed {
 			Regex rangeAddress;
 
 			public CommandMode() {
-				commandMatch = new Regex(@"^(.*([^'a-z]|'[a-z]))*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter>.*)$",RegexOptions.Compiled);
+				commandMatch = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 				// singleAddress = new Regex("\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z]");
-				rangeAddress = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*",RegexOptions.Compiled);
+				// rangeAddress = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*",RegexOptions.Compiled);
 				exitReady = false;
 			}
 
 			public Command parse (string line)
 			{
 				MatchCollection commandParameters = commandMatch.Matches(line);
-				MatchCollection address = rangeAddress.Matches(line);
+				//MatchCollection address = rangeAddress.Matches(line);
 				// Report the number of matches found.
-				Console.WriteLine("{0} matches found in:\n   {1}",
+
+				if (commandParameters.Count != 1) {
+					throw new Exception("invalid address");
+				} else {
+					Match command = commandParameters[0];
+					GroupCollection gc = command.Groups;
+
+					string cmd = gc["command"];
+					string cmdStart = gc["start"];
+					string cmdEnd = gc["end"];
+					string cmdParam = gc["parameter"];
+
+					Command current = CommandList[cmd];
+
+					if (!current.validate(cmdStart,cmdEnd,cmdParam))
+					{
+						throw new Exception("invalid address");
+					}
+
+				}
+				Console.WriteLine("{0} matches found in:{1}",
 					commandParameters.Count,
 					line);
 				foreach (Match match in commandParameters)
 				{
 					GroupCollection groups = match.Groups;
-					Console.WriteLine("command: {0} : {1}",groups["command"],groups["parameter"]);
+					Console.WriteLine("command: {0} param: {1}  range: {2}..{3}",groups["command"],groups["parameter"],groups["start"],groups["end"]);
 					
 				}
-				foreach (Match match in address) {
-					GroupCollection groups = match.Groups;
-					Console.WriteLine("range: start {0} : end {1}",groups["start"],groups["end"]);
-					
-				}
+
 				return this;
 			}
 
