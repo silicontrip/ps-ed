@@ -4,7 +4,7 @@ using System.Management.Automation.Host;
 
  namespace GNUed {
  
-    [Cmdlet(VerbsCommon.Edit, "Item")]
+    [Cmdlet(VerbsData.Edit, "Item")]
     public class edMain : PSCmdlet
     {
 
@@ -29,11 +29,19 @@ using System.Management.Automation.Host;
         {
 			PSHostUserInterface ui = Host.UI;
 
-			cc = new Controller();
+	 //Console.WriteLine("controller isntance");
+			cc = Controller.Instance;
+		//		Console.WriteLine("set ui");
+
 			cc.SetUI(ui);
+		//					Console.WriteLine("set prompt");
+
 			cc.SetPrompt("");
-			if (path.Length > 0)
+		//								Console.WriteLine("path length");
+
+			if (!String.IsNullOrEmpty(path))
 				cc.SetDocument(new Document(path));
+							Console.WriteLine("start");
 
 			cc.Start();
 		}
