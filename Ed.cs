@@ -2,7 +2,7 @@ using System;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 
- namespace GNUed {
+ namespace org.gnu.ed {
  
     [Cmdlet(VerbsData.Edit, "Item")]
     public class edMain : PSCmdlet
@@ -27,22 +27,21 @@ using System.Management.Automation.Host;
 
         protected override void BeginProcessing()
         {
-			PSHostUserInterface ui = Host.UI;
 
-	 //Console.WriteLine("controller isntance");
-			cc = Controller.Instance;
-		//		Console.WriteLine("set ui");
-
-			cc.SetUI(ui);
-		//					Console.WriteLine("set prompt");
-
-			cc.SetPrompt("");
-		//								Console.WriteLine("path length");
+			Document doc;
 
 			if (!String.IsNullOrEmpty(path))
-				cc.SetDocument(new Document(path));
-							Console.WriteLine("start");
+			{
+				doc= new Document(path);
+			} else {
+				doc = new Document();
+			}
 
+			PSHostUserInterface ui = Host.UI;
+			cc = new Controller(ui,doc);  // if this were a multi document app, this would be new
+			cc.SetPrompt("");
+
+			//Console.WriteLine("start");
 			cc.Start();
 		}
 	}
