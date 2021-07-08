@@ -84,6 +84,9 @@ namespace org.gnu.ed {
 			if (filename.Length==0)
 				throw new Exception("no current filename");
 
+			if (unsaved)
+				throw new Exception("warning: file modified");
+
 			// new buffer
 			buffer = new List<string>();
 
@@ -115,7 +118,7 @@ namespace org.gnu.ed {
 			// insert lines before 
 			buffer.InsertRange(before-1,append);
 			// return array with after+1 + append.length
-					return Enumerable.Range(before, append.Count);
+			return Enumerable.Range(before, append.Count);
 
 		}
 
@@ -264,8 +267,11 @@ namespace org.gnu.ed {
 			return total;
 		}
 		public Int32 GetLineLength() { return buffer.Count; }
-
 		public bool isUnsaved() { return unsaved; }
+
+		public List<string> GetRange (Int32 startLine, Int32 endLine) {
+			return buffer.GetRange(startLine-1,endLine-startLine+1);
+		}
 
 	}
 }

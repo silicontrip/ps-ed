@@ -2,104 +2,208 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace GNUed {
+namespace org.gnu.ed {
 
-	public interface Command {
-		Command parse (string Line);
-		void init (string start, string end, string param);
-		bool exit();  // yes or no ???
+	public abstract class Command {
+		public abstract void init (string start, string param);
+		public abstract Command parse (string Line);
+
+		protected Int32 startLine;
+		protected Int32 endLine;
+
+		protected Int32[] addressRange;
+
+		protected Controller con;
+		protected Document doc;
+
+		protected void NoParam(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
+		protected void NoAddress(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid address"); }
+
+		// void run (string start, string end, string param);
+		// bool exit();  // yes or no ???
 	//	List<Int32> getRange(string address);
 	}
 
 		public class CommandMode : Command {
-		// A bunch of stuff
+			// A bunch of stuff
 
-			private Regex commandMatch;
-			private bool exitReady;
-			// Regex singleAddress;
-			private Regex rangeAddress;
-			private Dictionary<string,Command> CommandList;
-
-			public CommandMode() {
-				commandMatch = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
+			public CommandMode(Controller c, Document d) {
 
 				// singleAddress = new Regex("\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z]");
 				// rangeAddress = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*",RegexOptions.Compiled);
-				exitReady = false;
-				CommandList = new Dictionary<string,Command>();
+				// exitReady = false;
+				// CommandList = new Dictionary<string,Command>();
+
+			// do we need these?
+				con = c;  // yes
+			//	thisDocument = d;  // maybe // not
+
 			}
 
-			public void init (string start, string end, string param)
+			public override void init (string start, string param)
 			{
 				;  // we don't need no initialisation.
 				// we don't need no state control.
 				// hey caller, leave these methods alone.
-				// all in all you're just another, step in the stack.
+				// all in all you're just another, trace in the stack.
 			}
 
-			public Command parse(string line)
+			public override Command parse(string line)
 			{
-				MatchCollection commandParameters = commandMatch.Matches(line);
-				//MatchCollection address = rangeAddress.Matches(line);
-				// Report the number of matches found.
-
-				if (commandParameters.Count != 1) {
-					throw new Exception("invalid address");
-				} else {
-					Match command = commandParameters[0];
-					GroupCollection gc = command.Groups;
+					GroupCollection gc = con.ParseCommand(line);
 
 					string cmd = gc["command"].Value;
-					string cmdStart = gc["start"].Value;
-					string cmdEnd = gc["end"].Value;
+					string cmdRange = gc["range"].Value;
+					// string cmdEnd = gc["end"].Value;
 					string cmdParam = gc["parameter"].Value;
 
-					Command current = CommandList[cmd];
+					Command newCurrent = con.GetCommand(cmd);
 
-				}
-				Console.WriteLine("{0} matches found in:{1}", commandParameters.Count,line);
-				foreach (Match match in commandParameters)
-				{
-					GroupCollection groups = match.Groups;
-					Console.WriteLine("command: {0} param: {1}  range: {2}..{3}",groups["command"],groups["parameter"],groups["start"],groups["end"]);
-					
-				}
-
-				return this;
+					newCurrent.init(cmdRange,cmdParam);
+					return newCurrent.parse("");  //  not sure if line should be passed in here
 			}
-
-			public bool exit() { return exitReady; }
 		}
 
-		public class AppendMode : Command {
+//  *** APPEND ***
+
+		public class CommandAppend : Command {
 			private List<string> buffer;
-			Int32 startLine;
-			public AppendMode() { buffer = new List<string>(); }
-			public void init (string start,string end, string param)
+
+			public CommandAppend(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
 			{
-				if (end.Length > 0 || param.Length > 0)
-						throw new Exception("invalid address");
-				if (start.Length > 0)
+
+				NoParam(param);
+				addressRange = con.ParseRange(addr,".",1);
+				// startLine = address[0];
+
+				buffer = new List<string>(); 
+
+			}
+
+			public override Command parse (string line) {
+				if (!String.IsNullOrEmpty(line))
 				{
-					try {
-						startLine = Int32.Parse(start);  // no it's not this simple
-					} catch (FormatException e) {
-						throw new Exception("invalid address");
+					if (line == ".") {
+						// update document
+						doc.Append(buffer,addressRange[0]);
+						// update current line
+						return con.GetCommand("commandmode");
+					} else {
+						buffer.Add(line);
+						return this;
 					}
-				} else {
-					startLine = Controller.Instance.GetCurrentLine();
 				}
+				return this;
 			}
-			public Command parse (string line) {
-				if (line == ".") {
-					// update document
-					return new CommandMode();
-				} else {
-					buffer.Add(line);
-					return this;
+		}
+
+// *** change ***
+
+		public class CommandChange : Command {
+
+			private List<string> buffer;
+
+			public CommandChange(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				NoParam(param);
+
+				addressRange = con.ParseRange(addr,".,.");
+				
+				// put Int32[] in the ivar ?
+				if ( addressRange.Length == 1 )
+					addressRange[1] = address[0];
+
+				buffer = new List<string>(); 
+
+			}
+
+			public override Command parse (string line) {
+				if (!String.IsNullOrEmpty(line))
+				{
+					if (line == ".") {
+						// update document
+						doc.Delete(addressRange[0],addressRange[1]);
+						doc.Append(buffer,addressRange[0]);
+						// update cut buffer
+						// update current line
+						return con.GetCommand("commandmode");
+					} else {
+						buffer.Add(line);
+						return this;
+					}
 				}
+				return this;
 			}
-			public bool exit() { return false; }
+		}
+
+		public class CommandDelete : Command {
+
+			public CommandDelete(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoParam(param);
+
+				addressRange = con.ParseRange(addr,".,.");
+				if (addressRange.Length == 1)
+					addressRange[1] = addressRange[0];
+				/*
+				if (String.IsNullOrEmpty(addr))
+					address = con.ParseRange(".,.");
+				else 
+					address = con.ParseRange(addr);
+				
+				if ( address.Length == 1 )
+				{
+					startLine = address[0];
+					endLine = address[0];
+				} else {
+					startLine = address[0];
+					endLine = address[1];
+				}
+				*/
+				// cut buffer
+
+				// current line
+				con.SetCurrentLine(startLine);
+				// delete
+				doc.Delete(startLine,endLine);
+
+			}
+			public override Command parse (string line) {
+				return con.GetCommand("commandmode");
+			}
+		}
+
+		public class CommandEdit : Command {
+
+			public CommandEdit(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoAddress(addr);
+				doc.Edit(param);
+			}
+			public override Command parse (string line) {
+				return con.GetCommand("commandmode");
+			}
 		}
 
 }

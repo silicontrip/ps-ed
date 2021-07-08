@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation.Host;
 // using System.Runtime;
-// using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 // using Microsoft.PowerShell;
 
 
 //using Document;
 
-namespace GNUed {
+namespace org.gnu.ed {
 
 	public class Controller {
 
@@ -24,12 +24,14 @@ namespace GNUed {
 		// InputMode mode;
 		string prompt;
 		List<string> undoCommands; // tricky??
-		private static Controller instance=null;
+		// private static Controller instance=null;
 		private PSHostUserInterface ui;
 	//	private Regex commandMatch;
 		private bool exitControl;
+		private Dictionary<string,Command> commandList;
+		Regex parseRegex ;
 
-		private Controller()
+		public Controller(PSHostUserInterface u, Document d)
 		{
 			exitControl = false;
 			cutBuffer = new List<string>();
@@ -39,10 +41,26 @@ namespace GNUed {
 			lastError="";
 			verboseErrorMode = false;
 		//	mode = command;
-			prompt = "";              
-			currentMode = new CommandMode();
+			prompt = "";
+			ui = u;
+			buffer = d;
+
+			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
+			Regex parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
+
+			currentMode = new CommandMode(this, buffer);
+			commandList["command"] = currentMode;
+			commandList["a"] = new CommandAppend(this,buffer);
+
+			  // needs document, controller object
 		}
 
+		public Command GetCommand(string s)
+		{
+			return commandList[s];
+		}
+
+/*
 		public static Controller Instance
 		{
 			get
@@ -54,7 +72,7 @@ namespace GNUed {
 				return instance;
 			}
 		}
-
+*/
 		public void SetUI (PSHostUserInterface u) { ui = u; }
 
 		public void SetDocument (Document d)
@@ -67,6 +85,103 @@ namespace GNUed {
 		public void SetPrompt (string p) { prompt = p; }
 		public void SetCurrentLine(Int32 l) { currentLine = l; }
 		public Int32 GetCurrentLine() { return currentLine; }
+		public void SetExit (bool e) { exitControl = e; }
+
+		public GroupCollection ParseCommand (string line)
+		{
+			MatchCollection commandParameters = parseRegex.Matches(line);
+				//MatchCollection address = rangeAddress.Matches(line);
+				// Report the number of matches found.
+
+				if (commandParameters.Count == 1) {
+					Match command = commandParameters[0];
+					return command.Groups;
+				}
+				throw new Exception("invalid address");
+
+		}
+
+		public Int32[] ParseRange (string addr, string default, Int32 limit)
+		{
+			Int32[] response = ParseRange(addr,default);
+			if (response.Length == limit)
+				return response;
+
+			throw new Exception("invalid address");
+
+		}
+
+		public Int32[] ParseRange (string addr, string default)
+		{
+			if (String.IsNullOrEmpty(addr))
+				return ParseRange(default);
+			else
+				return ParseRange(addr);
+		}
+
+		public Int32[] ParseRange (string addrRange)
+		{
+
+			// Int32[] intRange = new Int32[2];
+			
+			if (addrRange == ",")
+				return new int[] {1,buffer.GetLineLength()};
+			if (addrRange == ";")
+				return new int[] {currentLine,buffer.GetLineLength()};
+
+			string[] rangeSplit = addrRange.Split(',');
+
+			if (rangeSplit.Length == 1)
+				return new int[] { parseAddress(rangeSplit[0]) };
+			if (rangeSplit.Length == 2)
+				return new int[] { parseAddress(rangeSplit[0]), parseAddress(rangeSplit[1]) };
+
+			throw new Exception("invalid address");
+
+		}
+
+		private Int32 parseAddress (string addr)
+		{
+			if (addr == ".")
+				return currentLine;
+			if (addr == "$")
+				return buffer.GetLineLength();
+			
+			// begins with + or -
+
+			if (addr.StartsWith("+"))
+			{
+				string nn = addr.Substring(1);
+
+			}
+
+			if (addr.StartsWith("-"))
+			{
+				string nn = addr.Substring(1);
+
+			}
+
+			// is int
+
+			// next regex
+
+			// prev regex
+
+			// mark
+			if (addr.StartsWith("'"))
+			{
+				string mm = addr.Substring(1);
+				try {
+					return markBuffer[mm];
+				} catch (KeyNotFoundException) {
+					throw new Exception("invalid address");
+				}
+			}
+
+			throw new Exception("invalid address");
+
+
+		}
 
 		public void Start()
 		{
@@ -78,7 +193,7 @@ namespace GNUed {
 
 				string result = ui.ReadLine();
 				try {
-					currentMode.parse(result);  // circular dependancy
+					currentMode = currentMode.parse(result);  // circular dependancy
 				} catch (Exception e) {
 					lastError = e.Message;
 					if (verboseErrorMode) {
