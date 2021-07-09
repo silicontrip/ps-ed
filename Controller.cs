@@ -40,18 +40,24 @@ namespace org.gnu.ed {
 			lastSearchRegex = "";
 			lastError="";
 			verboseErrorMode = false;
-		//	mode = command;
+			//	mode = command;
 			prompt = "";
 			ui = u;
 			buffer = d;
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
-			Regex parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
+			 parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 
 			currentMode = new CommandMode(this, buffer);
+
+			commandList = new Dictionary<string,Command>();
 			commandList["command"] = currentMode;
 			commandList["a"] = new CommandAppend(this,buffer);
+			commandList["c"] = new CommandChange(this,buffer);
+			commandList["d"] = new CommandDelete(this,buffer);
+			commandList["e"] = new CommandEdit(this,buffer);
 
+			commandList["q"] = new CommandQuit(this,buffer);
 			  // needs document, controller object
 		}
 
@@ -60,19 +66,6 @@ namespace org.gnu.ed {
 			return commandList[s];
 		}
 
-/*
-		public static Controller Instance
-		{
-			get
-			{
-				if (instance==null)
-				{
-					instance = new Controller();
-				}
-				return instance;
-			}
-		}
-*/
 		public void SetUI (PSHostUserInterface u) { ui = u; }
 
 		public void SetDocument (Document d)
@@ -90,31 +83,31 @@ namespace org.gnu.ed {
 		public GroupCollection ParseCommand (string line)
 		{
 			MatchCollection commandParameters = parseRegex.Matches(line);
-				//MatchCollection address = rangeAddress.Matches(line);
-				// Report the number of matches found.
+			//MatchCollection address = rangeAddress.Matches(line);
+			// Report the number of matches found.
 
-				if (commandParameters.Count == 1) {
-					Match command = commandParameters[0];
-					return command.Groups;
-				}
-				throw new Exception("invalid address");
+			if (commandParameters.Count == 1) {
+				Match command = commandParameters[0];
+				return command.Groups;
+			}
+			throw new Exception("invalid address");
 
 		}
 
-		public Int32[] ParseRange (string addr, string default, Int32 limit)
+		public Int32[] ParseRange (string addr, string addrdef, Int32 addrlim)
 		{
-			Int32[] response = ParseRange(addr,default);
-			if (response.Length == limit)
+			Int32[] response = ParseRange(addr,addrdef);
+			if (response.Length == addrlim)
 				return response;
 
 			throw new Exception("invalid address");
 
 		}
 
-		public Int32[] ParseRange (string addr, string default)
+		public Int32[] ParseRange (string addr, string addrdef)
 		{
 			if (String.IsNullOrEmpty(addr))
-				return ParseRange(default);
+				return ParseRange(addrdef);
 			else
 				return ParseRange(addr);
 		}
@@ -180,7 +173,6 @@ namespace org.gnu.ed {
 
 			throw new Exception("invalid address");
 
-
 		}
 
 		public void Start()
@@ -193,8 +185,11 @@ namespace org.gnu.ed {
 
 				string result = ui.ReadLine();
 				try {
+					Console.WriteLine("Read: " + result);
 					currentMode = currentMode.parse(result);  // circular dependancy
-				} catch (Exception e) {
+				} 
+				catch (Exception e) 
+				{
 					lastError = e.Message;
 					if (verboseErrorMode) {
 						Console.WriteLine(lastError);
@@ -204,5 +199,6 @@ namespace org.gnu.ed {
 				}
 			}
 		}
+
 	}
 }
