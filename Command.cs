@@ -18,6 +18,7 @@ namespace org.gnu.ed {
 
 		protected void NoParam(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
 		protected void NoAddress(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid address"); }
+		protected void OrderAddress(Int32[] a) { if (a[1]<a[0]) throw new Exception("invalid address"); }
 
 		// void run (string start, string end, string param);
 		// bool exit();  // yes or no ???
@@ -45,7 +46,7 @@ namespace org.gnu.ed {
 			public override Command parse(string line)
 			{
 
-					Console.WriteLine("command parser -> "+ line);
+				//	Console.WriteLine("command parser -> "+ line);
 
 					GroupCollection gc = con.ParseCommand(line);
 
@@ -92,12 +93,15 @@ namespace org.gnu.ed {
 
 				Console.WriteLine("Command Append parse -> " + line);
 
-
 				if (!String.IsNullOrEmpty(line))
 				{
 					if (line == ".") {
 						// update document
 						doc.Append(buffer,addressRange[0]);
+						if(buffer.Count ==0)
+							con.SetCurrentLine(addressRange[0]);
+						else
+							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);
 						// update current line
 						return con.GetCommand("command");
 					} else {
@@ -131,6 +135,7 @@ namespace org.gnu.ed {
 				if ( addressRange.Length == 1 )
 					addressRange[1] = addressRange[0];
 
+				OrderAddress(addressRange);
 				buffer = new List<string>(); 
 
 			}
@@ -139,12 +144,14 @@ namespace org.gnu.ed {
 				if (!String.IsNullOrEmpty(line))
 				{
 					if (line == ".") {
+						// update cut buffer
+
+						con.SetCutBuffer(doc.GetRange(addressRange[0],addressRange[1]));
 						// update document
 						doc.Delete(addressRange[0],addressRange[1]);
 						doc.Append(buffer,addressRange[0]);
-						// update cut buffer
 						// update current line
-						return con.GetCommand("commandmode");
+						return con.GetCommand("command");
 					} else {
 						buffer.Add(line);
 						return this;
@@ -168,31 +175,13 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRange(addr,".,.");
 				if (addressRange.Length == 1)
 					addressRange[1] = addressRange[0];
-				/*
-				if (String.IsNullOrEmpty(addr))
-					address = con.ParseRange(".,.");
-				else 
-					address = con.ParseRange(addr);
-				
-				if ( address.Length == 1 )
-				{
-					startLine = address[0];
-					endLine = address[0];
-				} else {
-					startLine = address[0];
-					endLine = address[1];
-				}
-				*/
-				// cut buffer
-
-				// current line
-				con.SetCurrentLine(startLine);
-				// delete
-				doc.Delete(startLine,endLine);
+				OrderAddress(addressRange);
 
 			}
 			public override Command parse (string line) {
-				return con.GetCommand("commandmode");
+				con.SetCurrentLine(startLine);
+				doc.Delete(startLine,endLine);
+				return con.GetCommand("command");
 			}
 		}
 
@@ -208,8 +197,138 @@ namespace org.gnu.ed {
 				NoAddress(addr);
 				doc.Edit(param);
 			}
+
 			public override Command parse (string line) {
-				return con.GetCommand("commandmode");
+				return con.GetCommand("command");
+			}
+		}
+
+		public class CommandHelp : Command {
+
+			public CommandHelp(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoAddress(addr);
+				NoParam(param);
+			}
+
+			public override Command parse (string line) {
+				Console.WriteLine(con.GetError());
+				return con.GetCommand("command");
+			}
+		}
+
+		public class CommandHelpToggle : Command {
+
+			public CommandHelpToggle(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoAddress(addr);
+				NoParam(param);
+			}
+
+			public override Command parse (string line) {
+				con.ToggleVerboseHelp();
+				return con.GetCommand("command");
+			}
+		}
+
+		public class CommandInsert : Command {
+			private List<string> buffer;
+
+			public CommandInsert(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				//Console.WriteLine("Command Append Initialise");
+
+				NoParam(param);
+				addressRange = con.ParseRange(addr,".",1);
+
+				buffer = new List<string>(); 
+
+			}
+
+			public override Command parse (string line) {
+				if (!String.IsNullOrEmpty(line))
+				{
+					if (line == ".") {
+						// update document
+						doc.Insert(buffer,addressRange[0]);
+						// update current line
+						return con.GetCommand("command");
+					} else {
+						buffer.Add(line);
+						return this;
+					}
+				}
+				return this;
+			}
+		}
+
+		public class CommandJoin : Command {
+
+			public CommandJoin(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoParam(param);
+
+				// default = .,.+1
+				// single; does nothing, no error
+				addressRange = con.ParseRange(addr,".,.+1");
+
+				OrderAddress(addressRange);
+
+			}
+			public override Command parse (string line) {
+				if(addressRange.Length == 2)
+				{
+					con.SetCurrentLine(startLine);
+					doc.Join(startLine,endLine);
+				}
+				return con.GetCommand("command");
+			}
+		}
+
+		public class CommandMark : Command {
+
+			public CommandMark(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				//NoParam(param);
+				if (param.Length != 1) 
+					throw new Exception("invalid command suffix"); 
+
+				// default = .,.+1
+				// single; does nothing, no error
+				addressRange = con.ParseRange(addr,".",1);
+
+				// OrderAddress(addressRange);
+					con.SetMark(param,addressRange[0]);
+
+			}
+			public override Command parse (string line) {
+				return con.GetCommand("command");
 			}
 		}
 
@@ -225,11 +344,33 @@ namespace org.gnu.ed {
 				NoAddress(addr);
 				NoParam(param);
 
-				con.SetExit(true);
 			}
 			public override Command parse (string line) {
+				if (doc.isUnsaved())
+					throw new Exception("warning: file modified");
+				con.SetExit(true);
 				return null;
 			}
 		}
+
+		public class CommandQuitForce : Command {
+
+			public CommandQuitForce(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				NoAddress(addr);
+				NoParam(param);
+
+			}
+			public override Command parse (string line) {
+				con.SetExit(true);
+				return null;
+			}
+		}
+
 
 }

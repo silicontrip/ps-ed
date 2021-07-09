@@ -117,6 +117,6 @@ If file is prefixed with a bang (!), then it is interpreted as a shell command a
 * -Prompt
 * -Restricted
 * -Quiet (-Silent)
-* -Verbose (display help)
+* -Verbose (display help) 
 
 

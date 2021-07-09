@@ -56,8 +56,15 @@ namespace org.gnu.ed {
 			commandList["c"] = new CommandChange(this,buffer);
 			commandList["d"] = new CommandDelete(this,buffer);
 			commandList["e"] = new CommandEdit(this,buffer);
+			commandList["h"] = new CommandHelp(this,buffer);
+			commandList["H"] = new CommandHelpToggle(this,buffer);
+			commandList["i"] = new CommandInsert(this,buffer);
+			commandList["j"] = new CommandJoin(this,buffer);
+			commandList["k"] = new CommandMark(this,buffer);
 
 			commandList["q"] = new CommandQuit(this,buffer);
+			commandList["Q"] = new CommandQuitForce(this,buffer);
+
 			  // needs document, controller object
 		}
 
@@ -74,11 +81,19 @@ namespace org.gnu.ed {
 			currentLine = buffer.GetLineLength();
 		}
 
-		public Document GetDocument() { return buffer; }
-		public void SetPrompt (string p) { prompt = p; }
 		public void SetCurrentLine(Int32 l) { currentLine = l; }
-		public Int32 GetCurrentLine() { return currentLine; }
+		public void SetCutBuffer(List<string> cb) {cutBuffer = cb; }
 		public void SetExit (bool e) { exitControl = e; }
+		public void SetMark (string s, Int32 i) { markBuffer[s] = i; }
+		public void SetPrompt (string p) { prompt = p; }
+		public void SetVerboseHelp (bool h) { verboseErrorMode = h; }
+
+		public Int32 GetCurrentLine() { return currentLine; }
+		public Document GetDocument() { return buffer; }
+		public string GetError() { return lastError; }
+		public bool GetVerboseHelp () { return verboseErrorMode; }
+
+		public void ToggleVerboseHelp() { verboseErrorMode = !verboseErrorMode; }
 
 		public GroupCollection ParseCommand (string line)
 		{
