@@ -205,6 +205,7 @@ namespace org.gnu.ed {
 			public IEnumerable<Int32> Write (string filename, Int32 startLine, Int32 endLine)
 		{
 			// default filename voodoo
+			// shouldn't this be in the control object?
 
 			if (this.filename.Length==0 && filename.Length>0)
 				this.filename = filename;
@@ -221,7 +222,6 @@ namespace org.gnu.ed {
 			// if file 
 
 			List<string> lines = buffer.GetRange(startLine-1,endLine-startLine+1);
-
 
 			File.WriteAllLines(filename, lines.ToArray());
 
@@ -258,6 +258,7 @@ namespace org.gnu.ed {
 		}
 
 		public string GetFilename() { return this.filename; }
+		public void SetFilename(string f) { this.filename = f; }
 		public List<string>GetLines() { return buffer; }
 		public Int32 GetCharacterLength() 
 		{
