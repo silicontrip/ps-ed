@@ -23,6 +23,7 @@ namespace org.gnu.ed {
 		bool verboseErrorMode;
 		// InputMode mode;
 		string prompt;
+		string fixedPrompt;
 		List<string> undoCommands; // tricky??
 		// private static Controller instance=null;
 		private PSHostUserInterface ui;
@@ -45,6 +46,8 @@ namespace org.gnu.ed {
 			ui = u;
 			buffer = d;
 
+			fixedPrompt = "*";
+
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 			 parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 
@@ -61,7 +64,11 @@ namespace org.gnu.ed {
 			commandList["i"] = new CommandInsert(this,buffer);
 			commandList["j"] = new CommandJoin(this,buffer);
 			commandList["k"] = new CommandMark(this,buffer);
-
+			commandList["l"] = new CommandList(this,buffer);
+			commandList["m"] = new CommandMove(this,buffer);
+			commandList["n"] = new CommandNumber(this,buffer);
+			commandList["p"] = new CommandPrint(this,buffer);
+			commandList["P"] = new CommandPrompt(this,buffer);
 			commandList["q"] = new CommandQuit(this,buffer);
 			commandList["Q"] = new CommandQuitForce(this,buffer);
 
@@ -94,6 +101,12 @@ namespace org.gnu.ed {
 		public bool GetVerboseHelp () { return verboseErrorMode; }
 
 		public void ToggleVerboseHelp() { verboseErrorMode = !verboseErrorMode; }
+		public void TogglePrompt() { 
+			if (prompt.Length == 0)
+				prompt = fixedPrompt;
+			else
+				prompt = "";
+		}
 
 		public GroupCollection ParseCommand (string line)
 		{
@@ -107,6 +120,16 @@ namespace org.gnu.ed {
 			}
 			throw new Exception("invalid address");
 
+		}
+
+
+		public Int32[] ParseRangeDuplicate (string addr,string addrdef)
+		{
+			Int32[] response = ParseRange(addr,addrdef);
+			if (response.Length == 1)
+				response[1] = response[0];
+
+			return response;
 		}
 
 		public Int32[] ParseRange (string addr, string addrdef, Int32 addrlim)

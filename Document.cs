@@ -274,5 +274,9 @@ namespace org.gnu.ed {
 			return buffer.GetRange(startLine-1,endLine-startLine+1);
 		}
 
+		public List<string> GetRange (Int32[] range) {
+			return buffer.GetRange(range[0],range[1]);
+		}
+
 	}
 }
