@@ -17,14 +17,20 @@ namespace org.gnu.ed {
 		public Document()
 		{
 			buffer = new List<string>();
-			filename="";
+			this.filename="";
 			unsaved=false;
 		}
 
 		public Document(string filename)
 		{
 			readWriteEncoding = new ASCIIEncoding();
-			Edit(filename);
+			buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));
+		}
+
+		public void ReadFromFile (string fn)
+		{
+			readWriteEncoding = new ASCIIEncoding();
+			buffer = new List<string>(File.ReadAllLines(fn,readWriteEncoding));
 		}
 
 		public IEnumerable<Int32> Append (List<string> append, Int32 after)
@@ -41,7 +47,7 @@ namespace org.gnu.ed {
 				return modified;
 			// return array with after+1 + append.length
 		}
-
+/*
 		public IEnumerable<Int32> Change (List<string> append, Int32 startLine, Int32 toLine)
 		{
 			unsaved = true;
@@ -56,7 +62,7 @@ namespace org.gnu.ed {
 			// return array startLine TO emd
 			return Enumerable.Range(startLine, end - startLine+1);
 		}
-
+*/
 		public IEnumerable<Int32> Delete (Int32 startLine, Int32 endLine)
 		{
 			unsaved = true;
@@ -72,8 +78,15 @@ namespace org.gnu.ed {
 			// return array startLine to toline
 		}
 
+		public IEnumerable<Int32> Delete (Int32[] range)
+		{
+			return Delete(range[0],range[1]);
+		}
+/*
 		public IEnumerable<Int32> Edit (string filename)
 		{
+
+			Console.WriteLine("edit file: {0}",filename);
 
 			if (this.filename.Length==0 && filename.Length>0)
 				this.filename = filename;
@@ -94,6 +107,8 @@ namespace org.gnu.ed {
 			unsaved=false;
 
 			// read file or command
+			Console.WriteLine("read or pipe");
+
 			if (filename.StartsWith("!"))
 			{
 				; // do something
@@ -110,7 +125,7 @@ namespace org.gnu.ed {
 			return Enumerable.Range(1, buffer.Count);
 
 		}
-
+*/
 		public IEnumerable<Int32> Insert (List<string> append, Int32 before)
 		{
 			unsaved = true;
@@ -121,7 +136,7 @@ namespace org.gnu.ed {
 			return Enumerable.Range(before, append.Count);
 
 		}
-
+/*
 		public IEnumerable<Int32> Join (Int32 startLine, Int32 toLine)
 		{
 			unsaved = true;
@@ -256,9 +271,10 @@ namespace org.gnu.ed {
 			return Enumerable.Range(startLine, endLine);
 
 		}
-
+*/
 		public string GetFilename() { return this.filename; }
 		public void SetFilename(string f) { this.filename = f; }
+
 		public List<string>GetLines() { return buffer; }
 		public Int32 GetCharacterLength() 
 		{

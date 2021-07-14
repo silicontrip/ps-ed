@@ -17,15 +17,17 @@ namespace org.gnu.ed {
 		private Int32 currentLine;
 		private List<string> cutBuffer;
 		private Dictionary<string,Int32> markBuffer;
+		// private string fileName;
 		string lastReplaceRegex;
 		string lastSearchRegex;
 		string lastError;
 		bool verboseErrorMode;
-		// InputMode mode;
-		string prompt;
+ 
+ 		string prompt;
 		string fixedPrompt;
+
 		List<string> undoCommands; // tricky??
-		// private static Controller instance=null;
+		
 		private PSHostUserInterface ui;
 	//	private Regex commandMatch;
 		private bool exitControl;
@@ -47,6 +49,10 @@ namespace org.gnu.ed {
 			buffer = d;
 
 			fixedPrompt = "*";
+
+			currentLine = d.GetLineLength();
+
+			Console.WriteLine(currentLine);
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 			 parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
@@ -71,6 +77,8 @@ namespace org.gnu.ed {
 			commandList["P"] = new CommandPrompt(this,buffer);
 			commandList["q"] = new CommandQuit(this,buffer);
 			commandList["Q"] = new CommandQuitForce(this,buffer);
+
+			commandList["="] = new CommandLine(this,buffer);
 
 			  // needs document, controller object
 		}
@@ -108,10 +116,38 @@ namespace org.gnu.ed {
 				prompt = "";
 		}
 
-		public GroupCollection ParseCommand (string line)
+		public  void NoParam(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
+		public  void NoAddress(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid address"); }
+		public  void OrderAddress(Int32[] a) { if (a[1]<a[0]) throw new Exception("invalid address"); }
+
+		public  IEnumerable<string> EscapedSplit(string input, string separator, char escapeCharacter)
+		{
+			int startOfSegment = 0;
+			int index = 0;
+
+			while (index < input.Length)
+			{
+				index = input.IndexOf(separator,index);
+				if (index > 0 && input[index-1] == escapeCharacter)
+				{
+					index += separator.Length;
+					continue;
+				}
+				if (index == -1)
+				{ 
+					break;
+				}
+				yield return input.Substring(startOfSegment,index-startOfSegment);
+				index += separator.Length;
+				startOfSegment = index;
+			}
+			yield return input.Substring (startOfSegment);
+		}
+
+		public  GroupCollection ParseCommand (string line)
 		{
 			MatchCollection commandParameters = parseRegex.Matches(line);
-			//MatchCollection address = rangeAddress.Matches(line);
+			// MatchCollection address = rangeAddress.Matches(line);
 			// Report the number of matches found.
 
 			if (commandParameters.Count == 1) {
@@ -122,12 +158,11 @@ namespace org.gnu.ed {
 
 		}
 
-
 		public Int32[] ParseRangeDuplicate (string addr,string addrdef)
 		{
 			Int32[] response = ParseRange(addr,addrdef);
 			if (response.Length == 1)
-				response[1] = response[0];
+				response = new Int32[2] {response[0],response[0]};
 
 			return response;
 		}
@@ -144,6 +179,9 @@ namespace org.gnu.ed {
 
 		public Int32[] ParseRange (string addr, string addrdef)
 		{
+			Console.WriteLine("parse range (addr,addref)");
+
+
 			if (String.IsNullOrEmpty(addr))
 				return ParseRange(addrdef);
 			else
@@ -153,19 +191,23 @@ namespace org.gnu.ed {
 		public Int32[] ParseRange (string addrRange)
 		{
 
+			Console.WriteLine("parse range (string)");
 			// Int32[] intRange = new Int32[2];
 			
 			if (addrRange == ",")
 				return new int[] {1,buffer.GetLineLength()};
+
 			if (addrRange == ";")
 				return new int[] {currentLine,buffer.GetLineLength()};
 
 			string[] rangeSplit = addrRange.Split(',');
 
+			Console.WriteLine("parse range: {0}",rangeSplit);
+
 			if (rangeSplit.Length == 1)
-				return new int[] { parseAddress(rangeSplit[0]) };
+				return new Int32[] { parseAddress(rangeSplit[0]) };
 			if (rangeSplit.Length == 2)
-				return new int[] { parseAddress(rangeSplit[0]), parseAddress(rangeSplit[1]) };
+				return new Int32[] { parseAddress(rangeSplit[0]), parseAddress(rangeSplit[1]) };
 
 			throw new Exception("invalid address");
 
@@ -173,8 +215,14 @@ namespace org.gnu.ed {
 
 		private Int32 parseAddress (string addr)
 		{
-			if (addr == ".")
+
+			Console.WriteLine("parsing address: {0}",addr);
+
+			if (addr == ".") {
+				Console.WriteLine("current line: {0}",currentLine);
+
 				return currentLine;
+			}
 			if (addr == "$")
 				return buffer.GetLineLength();
 			
@@ -183,20 +231,68 @@ namespace org.gnu.ed {
 			if (addr.StartsWith("+"))
 			{
 				string nn = addr.Substring(1);
+				Regex regex = new Regex("\\++"); // Split on hyphens.
+				string[] substrings = regex.Split(addr);
+				if (substrings.Length != 2)
+					throw new Exception("invalid address");
 
+				if (substrings[0].Length != 0 )
+					throw new Exception("invalid address");
+
+				if (substrings[1].Length == 0) {
+					Int32 rem = addr.Split('+').Length  -1 ;
+				//	Console.WriteLine("({1}) -> sub: {0}",rem,addr);
+					return currentLine + rem;
+				}
+				else
+				{
+					Int32 rem  = parseAddress(substrings[1]);
+				//	Console.WriteLine("add: {0}",rem);
+					return currentLine + rem;
+				}
 			}
 
 			if (addr.StartsWith("-"))
 			{
 				string nn = addr.Substring(1);
+				Regex regex = new Regex("\\-+"); // Split on hyphens.
+				string[] substrings = regex.Split(addr);
 
+			//	Console.WriteLine("Split len: {0}, 0 Len: {1}, 1 len: {2}",substrings.Length,substrings[0].Length,substrings[1].Length);
+
+				if (substrings.Length != 2)
+					throw new Exception("invalid address");
+
+				if (substrings[0].Length != 0 )
+					throw new Exception("invalid address");
+
+				if (substrings[1].Length == 0) {
+					Int32 rem = addr.Split('-').Length;
+			//		Console.WriteLine("({1}) -> sub: {0}",rem,addr);
+					return currentLine - rem;
+				}
+				else
+				{
+					Int32 rem  = parseAddress(substrings[1]);
+				//	Console.WriteLine("sub: {0}",rem);
+					return currentLine - rem;
+				}
 			}
 
-			// is int
+		//	Console.WriteLine("try parse: {0}",addr);
 
+			// is int
+			Int32 num;
+			if (Int32.TryParse(addr,out num))
+			{
+			//	Console.WriteLine("try parse: {0}",num);
+				return num;
+			}
 			// next regex
 
 			// prev regex
+
+		//	Console.WriteLine("starts with: {0}",addr);
 
 			// mark
 			if (addr.StartsWith("'"))
@@ -208,6 +304,9 @@ namespace org.gnu.ed {
 					throw new Exception("invalid address");
 				}
 			}
+
+			Console.WriteLine("no match: {0}",addr);
+
 
 			throw new Exception("invalid address");
 
@@ -223,7 +322,7 @@ namespace org.gnu.ed {
 
 				string result = ui.ReadLine();
 				try {
-					Console.WriteLine("Read: " + result);
+				//	Console.WriteLine("Read: " + result);
 					currentMode = currentMode.parse(result);  // circular dependancy
 				} 
 				catch (Exception e) 

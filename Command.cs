@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace org.gnu.ed {
@@ -14,7 +17,7 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoParam(param);
+				con.NoParam(param);
 				addressRange = con.ParseRange(addr,".",1);
 			}
 
@@ -27,9 +30,6 @@ namespace org.gnu.ed {
  */
 
 	public abstract class Command {
-		public abstract void init (string start, string param);
-		public abstract Command parse (string Line);
-
 		protected Int32 startLine;
 		protected Int32 endLine;
 
@@ -37,39 +37,9 @@ namespace org.gnu.ed {
 
 		protected Controller con;
 		protected Document doc;
+		public abstract void init (string start, string param);
+		public abstract Command parse (string Line);
 
-// should these be in the controller
-		protected void NoParam(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
-		protected void NoAddress(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid address"); }
-		protected void OrderAddress(Int32[] a) { if (a[1]<a[0]) throw new Exception("invalid address"); }
-
-		protected IEnumerable<string> Split(this string input, string separator, char escapeCharacter)
-		{
-			int startOfSegment = 0;
-			int index = 0;
-
-			while (index < input.Length)
-			{
-				index = input.IndexOf(separator,index);
-				if (index > 0 && input[index-1] == escapeCharacter)
-				{
-					index += separator.Length;
-					continue;
-				}
-				if (index == -1)
-				{ 
-					break;
-				}
-				yield return input.Substring(startOfSegment,index-startOfSegment);
-				index += separator.Length;
-				startOfSegment = index;
-			}
-			yield return input.Substring (startOfSegment);
-		}
-
-		// void run (string start, string end, string param);
-		// bool exit();  // yes or no ???
-		//	List<Int32> getRange(string address);
 	}
 
 		public class CommandMode : Command {
@@ -136,9 +106,9 @@ namespace org.gnu.ed {
 			// perhaps make these into a strategy
 
 				// call this the;
-				// NoParamSingleCurrent
+				// con.NoParamSingleCurrent
 
-				NoParam(param);
+				con.NoParam(param);
 				addressRange = con.ParseRange(addr,".",1);
 				// startLine = address[0];
 
@@ -195,11 +165,11 @@ namespace org.gnu.ed {
 			{
 
 				// strategy name:
-				// NoParamDoubleOrderedCurrent
+				// con.NoParamDoubleOrderedCurrent
 
-				NoParam(param);  // should these be in the controller class
+				con.NoParam(param);  // should these be in the controller class
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
 
 				// put Int32[] in the ivar ?
 
@@ -247,13 +217,17 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				// strategy name:
-				// NoParamDoubleOrderedCurrent
+				Console.WriteLine("delete init");
 
-				NoParam(param);
+				// strategy name:
+				// con.NoParamDoubleOrderedCurrent
+
+				con.NoParam(param);
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
 
-				OrderAddress(addressRange);
+				Console.WriteLine(" delete init: {0}",addr);
+
+				con.OrderAddress(addressRange);
 
 			}
 			public override Command parse (string line) {
@@ -287,15 +261,15 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 				// very hard to name this strategy
-				// NoAddress
-				NoAddress(addr);
+				// con.NoAddress
+				con.NoAddress(addr);
 
 				if (doc.isUnsaved())
 					throw new Exception("warning: file modified");
 
 				if (!String.IsNullOrEmpty(param))
 				{
-					doc.Edit(param);
+					doc.ReadFromFile(param);
 				}
 				Console.WriteLine(doc.GetLineLength());
 			}
@@ -320,14 +294,14 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
+				con.NoAddress(addr);
 
 				//	if (doc.isUnsaved())
 				//		throw new Exception("warning: file modified");
 
 				if (!String.IsNullOrEmpty(param))
 				{
-					doc.Edit(param);
+					doc.ReadFromFile(param);
 				}
 				Console.WriteLine(doc.GetLineLength());
 			}
@@ -352,7 +326,7 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
+				con.NoAddress(addr);
 
 				if (!String.IsNullOrEmpty(param))
 				{
@@ -410,8 +384,8 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
-				NoParam(param);
+				con.NoAddress(addr);
+				con.NoParam(param);
 				Console.WriteLine(con.GetError());
 			}
 
@@ -435,8 +409,8 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
-				NoParam(param);
+				con.NoAddress(addr);
+				con.NoParam(param);
 				con.ToggleVerboseHelp();
 
 			}
@@ -469,8 +443,8 @@ namespace org.gnu.ed {
 				//Console.WriteLine("Command Append Initialise");
 
 				// call this the;
-				// NoParamSingleCurrent
-				NoParam(param);
+				// con.NoParamSingleCurrent
+				con.NoParam(param);
 				addressRange = con.ParseRange(addr,".",1);
 
 				buffer = new List<string>(); 
@@ -513,22 +487,27 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 				// there always has to be one obscure strategy, named;
-				// NoParamDoubleOrderedCurrentToCurrentPlusOne
+				// con.NoParamDoubleOrderedCurrentToCurrentPlusOne
 
-				NoParam(param);
+				con.NoParam(param);
 
 				// default = .,.+1
 				// single; does nothing, no error
 				addressRange = con.ParseRange(addr,".,.+1");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
+				if (addressRange.Length == 2)
+				{
+					List<string> lines =  doc.GetRange(addressRange);
+					string ll =  String.Join(" ", lines);
+					con.SetCurrentLine(startLine);
+					doc.Delete(addressRange);
+					List<string> la = new List<string>();
+					la.Add(ll);
+					doc.Append(la,startLine);
+				}
 
 			}
 			public override Command parse (string line) {
-				if(addressRange.Length == 2)
-				{
-					con.SetCurrentLine(startLine);
-					doc.Join(startLine,endLine);
-				}
 				return con.GetCommand("command");
 			}
 		}
@@ -552,7 +531,7 @@ namespace org.gnu.ed {
 			{
 				// SingleCharParamSingleCurrent
 
-				//NoParam(param);
+				//con.NoParam(param);
 				if (param.Length != 1) 
 					throw new Exception("invalid command suffix"); 
 
@@ -560,7 +539,7 @@ namespace org.gnu.ed {
 				// single; does nothing, no error
 				addressRange = con.ParseRange(addr,".",1);
 
-				// OrderAddress(addressRange);
+				// con.OrderAddress(addressRange);
 					con.SetMark(param,addressRange[0]);
 
 			}
@@ -588,20 +567,20 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				NoParam(param);
+				con.NoParam(param);
 
 				// default = .,.+1
 				// single; does nothing, no error
 				addressRange = con.ParseRange(addr,".,.");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
 
 				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
 
 				foreach (string ll in lines)
 				{
 					// perform magic subs
-					ll = ll.Replace("$","\\$");
-					ll = ll.Replace("\\","\\\\");
+					string newline = ll.Replace("$","\\$");
+					newline = newline.Replace("\\","\\\\");
 
 					// please sir can I have some more
 					// ll.Replace(":special:","\&");
@@ -610,7 +589,7 @@ namespace org.gnu.ed {
 					// it is suffixed with a \
 					// hard newlines are inserted
 
-					Console.WriteLine("{0}$",ll);					
+					Console.WriteLine("{0}$",ll);
 
 				}
 				con.SetCurrentLine(addressRange[1]);
@@ -643,17 +622,17 @@ namespace org.gnu.ed {
 			{
 
 				// strategy name:
-				// NoParamDoubleOrderedCurrent
+				// con.NoParamDoubleOrderedCurrent
 
-				// NoParam(param);  // should these be in the controller class
+				// con.NoParam(param);  // should these be in the controller class
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
 				Int32[] targetRange = con.ParseRange(param,".",1);
 				// put Int32[] in the ivar ?
 
 				List<string>buffer = doc.GetRange(addressRange); 
 
-										// update document
+				// update document
 				doc.Delete(addressRange[0],addressRange[1]);
 				doc.Append(buffer,targetRange[0]);
 				con.SetCurrentLine(addressRange[1] - addressRange[0] + targetRange[0]);
@@ -681,12 +660,12 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				NoParam(param);
+				con.NoParam(param);
 
 				// default = .,.+1
 				// single; does nothing, no error
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
 
 				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
 
@@ -723,12 +702,12 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				NoParam(param);
+				con.NoParam(param);
 
 				// default = .,.+1
 				// single; does nothing, no error
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
-				OrderAddress(addressRange);
+				con.OrderAddress(addressRange);
 
 				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
 
@@ -769,8 +748,8 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				NoParam(param);
-				NoAddress(addr);
+				con.NoParam(param);
+				con.NoAddress(addr);
 
 				con.TogglePrompt();
 
@@ -795,8 +774,8 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
-				NoParam(param);
+				con.NoAddress(addr);
+				con.NoParam(param);
 
 			}
 			public override Command parse (string line) {
@@ -822,8 +801,8 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				NoAddress(addr);
-				NoParam(param);
+				con.NoAddress(addr);
+				con.NoParam(param);
 
 			}
 			public override Command parse (string line) {
@@ -849,7 +828,6 @@ namespace org.gnu.ed {
  **/
 
 		public class CommandRead : Command {
-			private List<string> buffer;
 
 			public CommandRead(Controller c, Document d) {
 				doc = d;
@@ -863,9 +841,25 @@ namespace org.gnu.ed {
 				// startLine = address[0];
 
 				// I really don't think this should be handled in the document
-// get lines read.
-				doc.Read(param,addressRange[0]);
+				// get lines read.
 
+				// filename logic
+				string localFileName;
+				if (param.Length >0 )
+					localFileName = param;
+				else 
+					localFileName = doc.GetFilename();
+
+				if (localFileName.Length == 0)
+					throw new Exception("no current filename");
+
+				Encoding readWriteEncoding = new ASCIIEncoding();
+
+				List <string> buffer = new List<string>(File.ReadAllLines(localFileName,readWriteEncoding));
+
+				doc.Append(buffer,addressRange[0]);
+
+				con.SetCurrentLine (addressRange[0] + buffer.Count - 1);
 			}
 
 			public override Command parse (string line) {
@@ -939,10 +933,11 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-				string[] subCommand = Split(param,"/",'\\');
+				IEnumerable<string>splitCommand = con.EscapedSplit(param,"/",'\\');
 
-				Int32 subLength = subCommand.Length;
-				Console.Write("sub params: {0}",subCommand.Length);
+				List<string> subCommand = Enumerable.ToList(splitCommand);
+				Int32 subLength = subCommand.Count;
+				Console.Write("sub params: {0}",subLength);
 
 				if (subLength < 2 || subLength > 3)
 					throw new Exception("invalid command suffix");
@@ -956,6 +951,30 @@ namespace org.gnu.ed {
 
 
 			}
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+
+		}
+
+		public class CommandSubstituteRepeat : Command {
+			public CommandSubstituteRepeat(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				addressRange = con.ParseRangeDuplicate(addr,".,.");
+
+			//	Console.Write ("{0}",subCommand);
+				// for addressRange
+					// line.replace(previous regex);
+
+			}
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
 
 		}
 
@@ -965,6 +984,40 @@ namespace org.gnu.ed {
  ** If the destination address is '0' (zero), the lines are copied at the 
  ** beginning of the buffer. The current address is set to the address of the last line copied. |
  **/
+
+		public class CommandTransfer : Command {
+
+			//private List<string> buffer;
+
+			public CommandTransfer(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				// strategy name:
+				// con.NoParamDoubleOrderedCurrent
+
+				// con.NoParam(param);  // should these be in the controller class
+				addressRange = con.ParseRangeDuplicate(addr,".,.");
+				con.OrderAddress(addressRange);
+				Int32[] targetRange = con.ParseRange(param,".",1);
+				// put Int32[] in the ivar ?
+
+				List<string>buffer = doc.GetRange(addressRange); 
+
+										// update document
+				doc.Append(buffer,targetRange[0]);
+				con.SetCurrentLine(addressRange[1] - addressRange[0] + targetRange[0]);
+
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
 
 /** UNDO | u | 
  ** Undoes the effect of the last command that modified anything in the 
@@ -1046,6 +1099,31 @@ namespace org.gnu.ed {
  ** Prints the line number of the addressed line. 
  ** The current address is unchanged. |
  **/
+
+		public class CommandLine : Command {
+
+			//private List<string> buffer;
+
+			public CommandLine(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				// strategy name:
+				// con.NoParamDoubleOrderedCurrent
+
+				// con.NoParam(param);  // should these be in the controller class
+				addressRange = con.ParseRange(addr,"$",1);
+				Console.WriteLine(addressRange[0]);
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
 
 /** NULL | (.+1)`<newline>` |
  **Null command.** 
