@@ -30,8 +30,6 @@ namespace org.gnu.ed {
  */
 
 	public abstract class Command {
-		protected Int32 startLine;
-		protected Int32 endLine;
 
 		protected Int32[] addressRange;
 
@@ -119,17 +117,24 @@ namespace org.gnu.ed {
 
 				//Console.WriteLine("Command Append parse -> " + line);
 
-				if (!String.IsNullOrEmpty(line))
+
+		//		if (!String.IsNullOrEmpty(line))
+				if (line != null)
 				{
 					if (line == ".") {
 						// update document
-						if(buffer.Count ==0)
-							con.SetCurrentLine(addressRange[0]);
-						else
-						{
-							doc.Append(buffer,addressRange[0]);
-							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
-							con.Unsaved();
+						try {
+							if(buffer.Count ==0)
+								con.SetCurrentLine(addressRange[0]);
+							else
+							{
+								doc.Append(buffer,addressRange[0]);  // one indexed
+								con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
+								con.Unsaved();
+							}
+						} catch (Exception e) {
+							Console.WriteLine(e.Message);
+							Console.WriteLine(e.StackTrace);
 						}
 						// update current line
 						return con.GetCommand("command");
@@ -181,22 +186,27 @@ namespace org.gnu.ed {
 			}
 
 			public override Command parse (string line) {
-				if (!String.IsNullOrEmpty(line))
+				if (line != null)
 				{
 					if (line == ".") {
 						// update cut buffer
-						con.SetCutBuffer(doc.GetRange(addressRange));
-						doc.Delete(addressRange);
+						try {
+							con.SetCutBuffer(doc.GetLines(addressRange)); // one indexed
+							doc.Delete(addressRange);
 
-						// update document
-						// update current line
-						if(buffer.Count ==0)
-							con.SetCurrentLine(addressRange[0]);
-						else
-						{
-							doc.Append(buffer,addressRange[0]);
-							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
-							con.Unsaved();
+							// update document
+							// update current line
+							if(buffer.Count ==0)
+								con.SetCurrentLine(addressRange[0]);
+							else
+							{
+								doc.Insert(buffer,addressRange[0]);
+								con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
+								con.Unsaved();
+							}
+						} catch (Exception e) {
+							Console.WriteLine(e.Message);
+							Console.WriteLine(e.StackTrace);
 						}
 
 						return con.GetCommand("command");
@@ -238,7 +248,7 @@ namespace org.gnu.ed {
 				con.OrderAddress(addressRange);
 
 				con.SetCurrentLine(addressRange[0]);
-				con.SetCutBuffer(doc.GetRange(addressRange));
+				con.SetCutBuffer(doc.GetLines(addressRange));
 				doc.Delete(addressRange);
 				con.Unsaved();
 			}
@@ -476,13 +486,19 @@ namespace org.gnu.ed {
 			}
 
 			public override Command parse (string line) {
-				if (!String.IsNullOrEmpty(line))
+				if (line != null)
 				{
 					if (line == ".") {
-						// update document
-						doc.Insert(buffer,addressRange[0]);
-						con.SetCurrentLine (addressRange[0] + buffer.Count -1);
-						con.Unsaved();
+						try {
+							// update document
+							doc.Insert(buffer,addressRange[0]);
+							con.SetCurrentLine (addressRange[0] + buffer.Count -1);
+							con.Unsaved();
+						} catch (Exception e) {
+							Console.WriteLine(e.Message);
+							Console.WriteLine(e.StackTrace);
+						}
+
 						// update current line
 						return con.GetCommand("command");
 					} else {
@@ -521,16 +537,20 @@ namespace org.gnu.ed {
 				// single; does nothing, no error
 				addressRange = con.ParseRange(addr,".,.+1");
 				con.OrderAddress(addressRange);
+				//Console.WriteLine("addressRange == 2");
 				if (addressRange.Length == 2)
 				{
-					List<string> lines =  doc.GetRange(addressRange);
+					List<string> lines =  doc.GetLines(addressRange);
+				//	Console.WriteLine("join lines");
+
 					string ll =  String.Join(" ", lines);
 					doc.Delete(addressRange);
+					Console.WriteLine("...Deleted");
 					List<string> la = new List<string>();
 					la.Add(ll);
-					doc.Append(la,startLine);
+					doc.Append(la,addressRange[0]);
 
-					con.SetCurrentLine(startLine);
+					con.SetCurrentLine(addressRange[0]);
 					con.Unsaved();
 				}
 
@@ -599,7 +619,7 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRange(addr,".,.");
 				con.OrderAddress(addressRange);
 
-				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
+				List<string> lines = doc.GetLines(addressRange[0],addressRange[1]);
 
 				foreach (string ll in lines)
 				{
@@ -655,7 +675,7 @@ namespace org.gnu.ed {
 				Int32[] targetRange = con.ParseRange(param,".",1);
 				// put Int32[] in the ivar ?
 
-				List<string>buffer = doc.GetRange(addressRange); 
+				List<string>buffer = doc.GetLines(addressRange); 
 
 				// update document
 				doc.Delete(addressRange[0],addressRange[1]);
@@ -684,7 +704,6 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
-
 				con.NoParam(param);
 
 				// default = .,.+1
@@ -692,7 +711,7 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
 				con.OrderAddress(addressRange);
 
-				List<string> lines = doc.GetRange(addressRange);
+				List<string> lines = doc.GetLines(addressRange);
 
 				Int32 counter = 1;
 				foreach (string ll in lines)
@@ -734,7 +753,7 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
 				con.OrderAddress(addressRange);
 
-				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
+				List<string> lines = doc.GetLines(addressRange[0],addressRange[1]);
 
 				foreach (string ll in lines)
 				{
@@ -1037,7 +1056,7 @@ namespace org.gnu.ed {
 				Int32[] targetRange = con.ParseRange(param,".",1);
 				// put Int32[] in the ivar ?
 
-				List<string>buffer = doc.GetRange(addressRange); 
+				List<string>buffer = doc.GetLines(addressRange); 
 
 										// update document
 				doc.Append(buffer,targetRange[0]);
@@ -1099,7 +1118,7 @@ namespace org.gnu.ed {
 				else if (String.IsNullOrEmpty(doc.GetFilename()))
 					doc.SetFilename(param);
 				
-				List<string> lines = doc.GetRange(addressRange);
+				List<string> lines = doc.GetLines(addressRange);
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
 				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
@@ -1185,7 +1204,7 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
 				con.OrderAddress(addressRange);
 
-				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
+				List<string> lines = doc.GetLines(addressRange[0],addressRange[1]);
 
 				con.SetCutBuffer(lines); 
 

@@ -40,28 +40,27 @@ namespace org.gnu.ed {
 			// insert lines after
 			// after++;  // line numbers 1 indexed, not 0 
 			//SortedSet<Int32> modified = new SortedSet<Int32>();
-			foreach (string line in append)
-			{
+
+		//	Console.WriteLine (" after: {0}  append: {1}",after,append);
+		//	Console.WriteLine("buffer length: {0}",buffer.Count);
+
+
+			buffer.InsertRange(after,append);
+
+
+		//	foreach (string line in append)
+		//	{
 			//	modified.Add(after);
-				buffer.Insert(after++,line);
-			}
+		//		buffer.Insert(after++,line);
+		//	}
 			//return modified;
 			// return array with after+1 + append.length
 		}
 
 		public void Delete (Int32 startLine, Int32 endLine)
 		{
-			//unsaved = true;
-
-			buffer.RemoveRange(startLine-1,endLine-1);
-		//	SortedSet<Int32> modified = new SortedSet<Int32>();
-			// delete startLine to toLine
-			// for (Int32 index = endLine; index>=startLine;--index) {
-				//modified.Add(index);
-			//	buffer.RemoveAt(index-1);
-		//	}
-			//return modified;
-			// return array startLine to toline
+			Int32 count = endLine - startLine + 1;
+			buffer.RemoveRange(startLine-1,count);
 		}
 
 		public void Delete (Int32[] range)
@@ -96,12 +95,13 @@ namespace org.gnu.ed {
 		public Int32 GetLineLength() { return buffer.Count; }
 	//	public bool isUnsaved() { return unsaved; }
 
-		public List<string> GetRange (Int32 startLine, Int32 endLine) {
-			return buffer.GetRange(startLine-1,endLine-startLine+1);
+		public List<string> GetLines (Int32 startLine, Int32 endLine) {
+			Int32 count = endLine - startLine + 1;
+			return buffer.GetRange(startLine-1,count);
 		}
 
-		public List<string> GetRange (Int32[] range) {
-			return buffer.GetRange(range[0],range[1]);
+		public List<string> GetLines (Int32[] range) {
+			return GetLines(range[0],range[1]);
 		}
 
 	}

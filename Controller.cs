@@ -204,7 +204,7 @@ namespace org.gnu.ed {
 
 		public Int32[] ParseRange (string addr, string addrdef)
 		{
-			Console.WriteLine("parse range (addr,addref)");
+			// Console.WriteLine("parse range (addr,addref)");
 
 
 			if (String.IsNullOrEmpty(addr))
@@ -227,7 +227,7 @@ namespace org.gnu.ed {
 
 			string[] rangeSplit = addrRange.Split(',');
 
-			Console.WriteLine("parse range: {0}",rangeSplit);
+			//Console.WriteLine("parse range: {0}",rangeSplit);
 
 			if (rangeSplit.Length == 1)
 				return new Int32[] { ParseAddress(rangeSplit[0]) };
@@ -241,7 +241,6 @@ namespace org.gnu.ed {
 		public Int32 ParseAddress (string addr)
 		{
 
-		//	Console.WriteLine("parsing address: {0}",addr);
 
 			if (addr == ".") {
 				return currentLine;
@@ -311,6 +310,10 @@ namespace org.gnu.ed {
 			//	Console.WriteLine("try parse: {0}",num);
 				return num;
 			}
+
+		Console.WriteLine("parsing address: {0}",addr);
+
+
 			// next regex
 
 			// prev regex
