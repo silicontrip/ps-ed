@@ -110,7 +110,6 @@ namespace org.gnu.ed {
 
 				con.NoParam(param);
 				addressRange = con.ParseRange(addr,".",1);
-				// startLine = address[0];
 
 				buffer = new List<string>(); 
 
@@ -124,11 +123,14 @@ namespace org.gnu.ed {
 				{
 					if (line == ".") {
 						// update document
-						doc.Append(buffer,addressRange[0]);
 						if(buffer.Count ==0)
 							con.SetCurrentLine(addressRange[0]);
 						else
-							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);
+						{
+							doc.Append(buffer,addressRange[0]);
+							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
+							con.Unsaved();
+						}
 						// update current line
 						return con.GetCommand("command");
 					} else {
@@ -155,6 +157,7 @@ namespace org.gnu.ed {
 		public class CommandChange : Command {
 
 			private List<string> buffer;
+		//	private Int32[] initAddressRange;  // parent ivar... keep getting tricked by this.
 
 			public CommandChange(Controller c, Document d) {
 				doc = d;
@@ -182,12 +185,20 @@ namespace org.gnu.ed {
 				{
 					if (line == ".") {
 						// update cut buffer
+						con.SetCutBuffer(doc.GetRange(addressRange));
+						doc.Delete(addressRange);
 
-						con.SetCutBuffer(doc.GetRange(addressRange[0],addressRange[1]));
 						// update document
-						doc.Delete(addressRange[0],addressRange[1]);
-						doc.Append(buffer,addressRange[0]);
 						// update current line
+						if(buffer.Count ==0)
+							con.SetCurrentLine(addressRange[0]);
+						else
+						{
+							doc.Append(buffer,addressRange[0]);
+							con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
+							con.Unsaved();
+						}
+
 						return con.GetCommand("command");
 					} else {
 						buffer.Add(line);
@@ -217,23 +228,23 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				Console.WriteLine("delete init");
+			//	Console.WriteLine("delete init");
 
 				// strategy name:
 				// con.NoParamDoubleOrderedCurrent
 
 				con.NoParam(param);
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
-
-				Console.WriteLine(" delete init: {0}",addr);
-
 				con.OrderAddress(addressRange);
 
-			}
-			public override Command parse (string line) {
 				con.SetCurrentLine(addressRange[0]);
-				con.SetCutBuffer(doc.GetRange(addressRange[0],addressRange[01]));
-				doc.Delete(addressRange[0],addressRange[01]);
+				con.SetCutBuffer(doc.GetRange(addressRange));
+				doc.Delete(addressRange);
+				con.Unsaved();
+			}
+
+			public override Command parse (string line) 
+			{
 				return con.GetCommand("command");
 			}
 		}
@@ -264,14 +275,21 @@ namespace org.gnu.ed {
 				// con.NoAddress
 				con.NoAddress(addr);
 
-				if (doc.isUnsaved())
+				if (con.isUnsaved())
 					throw new Exception("warning: file modified");
 
-				if (!String.IsNullOrEmpty(param))
-				{
-					doc.ReadFromFile(param);
-				}
-				Console.WriteLine(doc.GetLineLength());
+				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
+					throw new Exception ("no current filename");
+				if (String.IsNullOrEmpty(param))
+					param = doc.GetFilename();
+				else if (String.IsNullOrEmpty(doc.GetFilename()))
+					doc.SetFilename(param);
+				
+				doc.ReadFromFile(param);
+				doc.SetFilename(param);
+				con.SetCurrentLine(doc.GetLineLength());
+
+				Console.WriteLine(doc.GetCharacterLength());
 			}
 
 			public override Command parse (string line) {
@@ -299,11 +317,17 @@ namespace org.gnu.ed {
 				//	if (doc.isUnsaved())
 				//		throw new Exception("warning: file modified");
 
-				if (!String.IsNullOrEmpty(param))
-				{
-					doc.ReadFromFile(param);
-				}
-				Console.WriteLine(doc.GetLineLength());
+				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
+					throw new Exception ("no current filename");
+				if (String.IsNullOrEmpty(param))
+					param = doc.GetFilename();
+				else if (String.IsNullOrEmpty(doc.GetFilename()))
+				doc.SetFilename(param);
+				
+				doc.ReadFromFile(param);
+				con.SetCurrentLine(doc.GetLineLength());
+
+				Console.WriteLine(doc.GetCharacterLength());
 			}
 
 			public override Command parse (string line) {
@@ -331,9 +355,9 @@ namespace org.gnu.ed {
 				if (!String.IsNullOrEmpty(param))
 				{
 					doc.SetFilename(param);
-				} else {
-					Console.WriteLine(doc.GetFilename());
-				}
+				} 
+				Console.WriteLine(doc.GetFilename());
+				
 			}
 
 			public override Command parse (string line) {
@@ -457,6 +481,8 @@ namespace org.gnu.ed {
 					if (line == ".") {
 						// update document
 						doc.Insert(buffer,addressRange[0]);
+						con.SetCurrentLine (addressRange[0] + buffer.Count -1);
+						con.Unsaved();
 						// update current line
 						return con.GetCommand("command");
 					} else {
@@ -499,11 +525,13 @@ namespace org.gnu.ed {
 				{
 					List<string> lines =  doc.GetRange(addressRange);
 					string ll =  String.Join(" ", lines);
-					con.SetCurrentLine(startLine);
 					doc.Delete(addressRange);
 					List<string> la = new List<string>();
 					la.Add(ll);
 					doc.Append(la,startLine);
+
+					con.SetCurrentLine(startLine);
+					con.Unsaved();
 				}
 
 			}
@@ -535,12 +563,9 @@ namespace org.gnu.ed {
 				if (param.Length != 1) 
 					throw new Exception("invalid command suffix"); 
 
-				// default = .,.+1
-				// single; does nothing, no error
 				addressRange = con.ParseRange(addr,".",1);
 
-				// con.OrderAddress(addressRange);
-					con.SetMark(param,addressRange[0]);
+				con.SetMark(param,addressRange[0]);
 
 			}
 			public override Command parse (string line) {
@@ -635,8 +660,8 @@ namespace org.gnu.ed {
 				// update document
 				doc.Delete(addressRange[0],addressRange[1]);
 				doc.Append(buffer,targetRange[0]);
-				con.SetCurrentLine(addressRange[1] - addressRange[0] + targetRange[0]);
-
+				con.SetCurrentLine(addressRange[1] - addressRange[0] + targetRange[0] - 1 );
+				con.Unsaved();
 			}
 
 			public override Command parse (string line) {
@@ -667,7 +692,7 @@ namespace org.gnu.ed {
 				addressRange = con.ParseRangeDuplicate(addr,".,.");
 				con.OrderAddress(addressRange);
 
-				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
+				List<string> lines = doc.GetRange(addressRange);
 
 				Int32 counter = 1;
 				foreach (string ll in lines)
@@ -779,7 +804,7 @@ namespace org.gnu.ed {
 
 			}
 			public override Command parse (string line) {
-				if (doc.isUnsaved())
+				if (con.isUnsaved())
 					throw new Exception("warning: file modified");
 				con.SetExit(true);
 				return null;
@@ -837,29 +862,37 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				addressRange = con.ParseRange(addr,".",1);
+				addressRange = con.ParseRange(addr,"$",1);
 				// startLine = address[0];
 
 				// I really don't think this should be handled in the document
 				// get lines read.
 
-				// filename logic
+				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
+					throw new Exception ("no current filename");
+
 				string localFileName;
 				if (param.Length >0 )
 					localFileName = param;
 				else 
 					localFileName = doc.GetFilename();
 
-				if (localFileName.Length == 0)
-					throw new Exception("no current filename");
+
 
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
 				List <string> buffer = new List<string>(File.ReadAllLines(localFileName,readWriteEncoding));
 
-				doc.Append(buffer,addressRange[0]);
+	// *** Display number of characters read
+			Int32 total = 0;
+			foreach (string ss in buffer)
+				total += ss.Length + 1;
+			Console.WriteLine(total);
 
+
+				doc.Append(buffer,addressRange[0]);
 				con.SetCurrentLine (addressRange[0] + buffer.Count - 1);
+				con.Unsaved();
 			}
 
 			public override Command parse (string line) {
@@ -899,7 +932,7 @@ namespace org.gnu.ed {
 		public class CommandSubstituteRedirect : Command {
 			Command substitute;
 			Command substituteRepeat;
-			private List<string> buffer;
+		//	private List<string> buffer;
 
 			public CommandSubstituteRedirect(Controller c, Document d) {
 				doc = d;
@@ -941,8 +974,6 @@ namespace org.gnu.ed {
 
 				if (subLength < 2 || subLength > 3)
 					throw new Exception("invalid command suffix");
-
-
 				
 				string match = subCommand[0].Replace("\\/","/");
 
@@ -1049,23 +1080,121 @@ namespace org.gnu.ed {
  ** made to overwrite or discard the buffer via the 'e' or 'q' commands. |
  **/
 
+		public class CommandWrite : Command {
+
+			public CommandWrite(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+
+				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
+					throw new Exception ("no current filename");
+				if (String.IsNullOrEmpty(param))
+					param = doc.GetFilename();
+				else if (String.IsNullOrEmpty(doc.GetFilename()))
+					doc.SetFilename(param);
+				
+				List<string> lines = doc.GetRange(addressRange);
+				Encoding readWriteEncoding = new ASCIIEncoding();
+
+				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+
+/*
+				StreamWriter file = new StreamWriter(param, append: true);
+				foreach (string ll in lines)
+					file.WriteLine(ll);
+*/
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
+
+
 /** WRITE QUIT | (1,$)wq file | 
  ** Writes the addressed lines to file, and then executes a 'q' command. |
  **/
 
-// I would reverse x and y (more vi like)
+// I would reverse x and y (more vi like) more modern app like... cmd/ctrl-x is cut
 // x : CUT
 // y : YANK/PASTE
+
+
 
 /** PASTE | (.)x | 
  ** Copies (puts) the contents of the cut buffer to after the addressed line. 
  ** The current address is set to the address of the last line copied. |
  **/
 
+		public class CommandPaste : Command {
+
+			public CommandPaste(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				con.NoParam(param);
+				addressRange = con.ParseRange(addr,".",1);
+
+				List<string> buffer = con.GetCutBuffer();
+
+				if(buffer.Count == 0) {
+					con.SetCurrentLine(addressRange[0]);
+				} else {
+					doc.Append(buffer,addressRange[0]);
+					con.SetCurrentLine(addressRange[0]+buffer.Count - 1);  // <- move into document ?
+					con.Unsaved();
+				}
+
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
+
+
 /** YANK | (.,.)y | 
  ** Copies (yanks) the addressed lines to the cut buffer. 
  ** The cut buffer is overwritten by subsequent 'c', 'd', 'j', 's', or 'y' commands. The current address is unchanged. |
  **/
+
+		public class CommandYank : Command {
+
+			public CommandYank(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				con.NoParam(param);
+
+				// default = .,.+1
+				// single; does nothing, no error
+				addressRange = con.ParseRangeDuplicate(addr,".,.");
+				con.OrderAddress(addressRange);
+
+				List<string> lines = doc.GetRange(addressRange[0],addressRange[1]);
+
+				con.SetCutBuffer(lines); 
+
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
 
 /** SCROLL | (.+1)zn |
  **Scroll.** 
@@ -1094,6 +1223,38 @@ namespace org.gnu.ed {
  ** then the current address is set to that address. 
  ** Otherwise, the current address is unchanged. |
  **/
+
+		public class CommandComment : Command {
+
+			//private List<string> buffer;
+
+			public CommandComment(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				// strategy name:
+				// con.NoParamDoubleOrderedCurrent
+			//	addressRange = con.ParseRange(addr,".,.");  // not sure
+
+				string[] rangeSplit = addr.Split(';');
+
+				// Console.WriteLine("parse range: {0}",rangeSplit);
+
+				if (rangeSplit.Length == 1)
+					con.SetCurrentLine( con.ParseAddress(rangeSplit[0]));
+
+				// con.NoParam(param);  // should these be in the controller class
+				//Console.WriteLine(addressRange[0]);
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
 
 /** LINE | ($)= |
  ** Prints the line number of the addressed line. 
@@ -1131,5 +1292,29 @@ namespace org.gnu.ed {
  ** A `<newline>` alone is equivalent to '+1p'. 
  ** The current address is set to the address of the printed line. |
  **/
+
+		public class CommandNull : Command {
+
+			//private List<string> buffer;
+
+			public CommandNull(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+				con.NoParam(param);
+
+				addressRange = con.ParseRange(addr,"+1",1);
+				Console.WriteLine(doc.GetLine(addressRange[0]));
+
+				con.SetCurrentLine(addressRange[0]);
+			}
+
+			public override Command parse (string line) {
+				return con.GetCommand("command");
+			}
+		}
 
 }

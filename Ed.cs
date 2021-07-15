@@ -57,6 +57,8 @@ using System.Management.Automation.Host;
 			// I must be preparing for a multi document app...
 		//	Console.WriteLine ("new controller: {0}",cc);
 
+		//	cc.SetFilename(path);
+
 			if (String.IsNullOrEmpty(prompt))
 			{
 				cc.SetPrompt("");
