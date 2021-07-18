@@ -4,7 +4,9 @@ using System.Management.Automation.Host;
 
  namespace org.gnu.ed {
  
-    [Cmdlet(VerbsData.Edit, "Item")]
+ // Get-ChildItem ...  Get-Item ... Get-Content  
+ // I really do think that they went overboard with the verb-noun paradigm
+    [Cmdlet(VerbsData.Edit, "Content")]
     public class edMain : PSCmdlet
     {
 
@@ -48,9 +50,6 @@ using System.Management.Automation.Host;
 		//		Console.WriteLine ("new doc path");
 				doc= new Document(path);
 			}
-
-		//	Console.WriteLine ("new doc: {0}",doc);
-
 
 			PSHostUserInterface ui = Host.UI;
 			cc = new Controller(ui,doc);  // if this were a multi document app, this would be new
