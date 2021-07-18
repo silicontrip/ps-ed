@@ -27,6 +27,7 @@ namespace org.gnu.ed {
 		{
 			readWriteEncoding = new ASCIIEncoding();
 			buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));
+			this.filename = filename;
 		}
 
 		public void ReadFromFile (string fn)
@@ -36,25 +37,9 @@ namespace org.gnu.ed {
 
 		public void Append (List<string> append, Int32 after)
 		{
-			// unsaved = true;
-			// insert lines after
-			// after++;  // line numbers 1 indexed, not 0 
-			//SortedSet<Int32> modified = new SortedSet<Int32>();
-
-		//	Console.WriteLine (" after: {0}  append: {1}",after,append);
-		//	Console.WriteLine("buffer length: {0}",buffer.Count);
-
 
 			buffer.InsertRange(after,append);
 
-
-		//	foreach (string line in append)
-		//	{
-			//	modified.Add(after);
-		//		buffer.Insert(after++,line);
-		//	}
-			//return modified;
-			// return array with after+1 + append.length
 		}
 
 		public void Delete (Int32 startLine, Int32 endLine)
