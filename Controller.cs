@@ -58,7 +58,7 @@ namespace org.gnu.ed {
 			Console.WriteLine(d.GetCharacterLength());
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
-			 parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
+			parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=]|wq|$)(?<parameter>[ /0-9].*)*$",RegexOptions.Compiled);
 
 			currentMode = new CommandMode(this, buffer);
 
@@ -68,6 +68,10 @@ namespace org.gnu.ed {
 			commandList["c"] = new CommandChange(this,buffer);
 			commandList["d"] = new CommandDelete(this,buffer);
 			commandList["e"] = new CommandEdit(this,buffer);
+			commandList["E"] = new CommandEditUnconditional(this,buffer);
+
+			commandList["g"] = null;
+			commandList["G"] = null;
 
 			commandList["h"] = new CommandHelp(this,buffer);
 			commandList["H"] = new CommandHelpToggle(this,buffer);
@@ -83,12 +87,18 @@ namespace org.gnu.ed {
 			commandList["Q"] = new CommandQuitForce(this,buffer);
 			commandList["r"] = new CommandRead(this,buffer);
 
+			commandList["s"] = null;
+
 			commandList["t"] = new CommandTransfer(this,buffer);
+			commandList["u"] = null;
+			commandList["v"] = null;
+			commandList["V"] = null;
+
 			commandList["w"] = new CommandWrite(this,buffer);
+			commandList["wq"] = new CommandWriteQuit(this,buffer);  // Always an exception
 
 			commandList["x"] = new CommandPaste(this,buffer);
 			commandList["y"] = new CommandYank(this,buffer);
-
 
 			commandList["#"] = new CommandComment(this,buffer);
 			commandList["="] = new CommandLine(this,buffer);
@@ -241,7 +251,6 @@ namespace org.gnu.ed {
 		public Int32 ParseAddress (string addr)
 		{
 
-
 			if (addr == ".") {
 				return currentLine;
 			}
@@ -313,8 +322,12 @@ namespace org.gnu.ed {
 
 		Console.WriteLine("parsing address: {0}",addr);
 
-
 			// next regex
+			if (addr.StartsWith("/") && addr.EndsWith("/"))
+			{
+				Regex regex = new Regex("/(?<re>.+)/");
+				string[] substrings = regex.Split(addr);
+			}
 
 			// prev regex
 
@@ -332,8 +345,6 @@ namespace org.gnu.ed {
 			}
 
 			Console.WriteLine("no match: {0}",addr);
-
-
 			throw new Exception("invalid address");
 
 		}

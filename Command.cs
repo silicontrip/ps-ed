@@ -70,9 +70,10 @@ namespace org.gnu.ed {
 					// string cmdEnd = gc["end"].Value;
 					string cmdParam = gc["parameter"].Value;
 
-					// Console.WriteLine("command -> " + cmd);
-					// Console.WriteLine("range -> " + cmdRange);
-					// Console.WriteLine("param -> " + cmdParam);
+
+					Console.WriteLine("command -> " + cmd);
+					Console.WriteLine("  range -> " + cmdRange);
+					Console.WriteLine("  param -> " + cmdParam);
 
 					Command newCurrent = con.GetCommand(cmd);
 
@@ -847,10 +848,10 @@ namespace org.gnu.ed {
 			{
 				con.NoAddress(addr);
 				con.NoParam(param);
+				con.SetExit(true);
 
 			}
 			public override Command parse (string line) {
-				con.SetExit(true);
 				return null;
 			}
 		}
@@ -962,6 +963,8 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
+
+				Console.WriteLine("substitute:  {0}  ||  {1}",addr,param);
 
 				if (param.Length ==0 )
 				{
@@ -1109,6 +1112,8 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
+			//	Console.WriteLine("Quit: {0}",param);
+
 				addressRange = con.ParseRangeDuplicate(addr,"1,$");
 
 				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
@@ -1122,12 +1127,7 @@ namespace org.gnu.ed {
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
 				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
-
-/*
-				StreamWriter file = new StreamWriter(param, append: true);
-				foreach (string ll in lines)
-					file.WriteLine(ll);
-*/
+				con.Saved();
 			}
 
 			public override Command parse (string line) {
@@ -1140,12 +1140,43 @@ namespace org.gnu.ed {
  ** Writes the addressed lines to file, and then executes a 'q' command. |
  **/
 
+		public class CommandWriteQuit : Command {
+
+			public CommandWriteQuit(Controller c, Document d) {
+				doc = d;
+				con = c; 
+			}
+
+			public override void init (string addr, string param)
+			{
+
+				// Console.WriteLine("Quit: {0}",param);
+
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+
+				if (String.IsNullOrEmpty(doc.GetFilename()) && String.IsNullOrEmpty(param))
+					throw new Exception ("no current filename");
+				if (String.IsNullOrEmpty(param))
+					param = doc.GetFilename();
+				else if (String.IsNullOrEmpty(doc.GetFilename()))
+					doc.SetFilename(param);
+				
+				List<string> lines = doc.GetLines(addressRange);
+				Encoding readWriteEncoding = new ASCIIEncoding();
+
+				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+				con.SetExit(true);
+
+			}
+
+			public override Command parse (string line) {
+				return  null;
+			}
+		}
+
 // I would reverse x and y (more vi like) more modern app like... cmd/ctrl-x is cut
 // x : CUT
 // y : YANK/PASTE
-
-
-
 /** PASTE | (.)x | 
  ** Copies (puts) the contents of the cut buffer to after the addressed line. 
  ** The current address is set to the address of the last line copied. |
