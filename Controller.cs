@@ -87,7 +87,7 @@ namespace org.gnu.ed {
 			commandList["Q"] = new CommandQuitForce(this,buffer);
 			commandList["r"] = new CommandRead(this,buffer);
 
-			commandList["s"] = null;
+			commandList["s"] = new CommandSubstituteRedirect(this,buffer);
 
 			commandList["t"] = new CommandTransfer(this,buffer);
 			commandList["u"] = null;
@@ -326,10 +326,86 @@ namespace org.gnu.ed {
 			if (addr.StartsWith("/") && addr.EndsWith("/"))
 			{
 				Regex regex = new Regex("/(?<re>.+)/");
-				string[] substrings = regex.Split(addr);
+				// string[] substrings = regex.Split(addr);
+
+				MatchCollection regMatch = regex.Matches(addr);
+			// MatchCollection address = rangeAddress.Matches(line);
+			// Report the number of matches found.
+
+				if (regMatch.Count == 1) {
+					Match command = regMatch[0];
+					string cmd = command.Groups["re"].Value;
+
+					Regex lineReg = new Regex(cmd);
+
+					// for line = current to $
+					for (int ll = currentLine; ll<=buffer.GetLineLength(); ll++)
+					{
+						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
+						if (lineMatch.Count >0)
+							return ll;
+					}
+
+						// if regex match buffer[line]  return line
+					for (int ll = 1; ll<currentLine; ll++)
+					{
+						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
+						if (lineMatch.Count >0)
+							return ll;
+					}
+
+					// for line = 1 to current-1 
+						// if regex ....
+
+						throw new Exception("no match");
+
+				}
 			}
 
 			// prev regex
+
+			if (addr.StartsWith("?") && addr.EndsWith("?"))
+			{
+				Regex regex = new Regex("\\?(?<re>.+)\\?");
+				// string[] substrings = regex.Split(addr);
+
+				MatchCollection regMatch = regex.Matches(addr);
+			// MatchCollection address = rangeAddress.Matches(line);
+			// Report the number of matches found.
+
+				if (regMatch.Count == 1) {
+					Match command = regMatch[0];
+					string cmd = command.Groups["re"].Value;  // I'm sure there's a better way to reference a single match group
+
+					Regex lineReg = new Regex(cmd);
+
+					// for line = current-1 to 1
+						// if regex match buffer[line]  return line
+					// for line = $ to current
+						// if regex ....
+
+					for (int ll = currentLine-1; ll>0; ll--)
+					{
+						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
+						if (lineMatch.Count >0)
+							return ll;
+					}
+
+						// if regex match buffer[line]  return line
+					for (int ll = buffer.GetLineLength(); ll>=currentLine; ll--)
+					{
+						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
+						if (lineMatch.Count >0)
+							return ll;
+					}
+
+
+					throw new Exception("no match");
+
+				}
+			}
+
+
 
 		//	Console.WriteLine("starts with: {0}",addr);
 
