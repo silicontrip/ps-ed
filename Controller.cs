@@ -58,7 +58,7 @@ namespace org.gnu.ed {
 			Console.WriteLine(d.GetCharacterLength());
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
-			parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=]|wq|$)(?<parameter>[ /0-9].*)*$",RegexOptions.Compiled);
+			parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfgGhHijklmnpPqQrstuvVwWxyz!#=]|wq|$)(?<parameter>[ /0-9].*)*$",RegexOptions.Compiled);
 
 			currentMode = new CommandMode(this, buffer);
 
@@ -70,8 +70,8 @@ namespace org.gnu.ed {
 			commandList["e"] = new CommandEdit(this,buffer);
 			commandList["E"] = new CommandEditUnconditional(this,buffer);
 
-			commandList["g"] = null;
-			commandList["G"] = null;
+			commandList["g"] = new CommandGlobal(this,buffer);
+			commandList["G"] = new CommandGlobalInteractive(this,buffer);
 
 			commandList["h"] = new CommandHelp(this,buffer);
 			commandList["H"] = new CommandHelpToggle(this,buffer);
@@ -91,8 +91,8 @@ namespace org.gnu.ed {
 
 			commandList["t"] = new CommandTransfer(this,buffer);
 			commandList["u"] = null;
-			commandList["v"] = null;
-			commandList["V"] = null;
+			commandList["v"] = new CommandInverseGlobal(this,buffer);
+			commandList["V"] = new CommandInverseGlobalInteractive(this,buffer);
 
 			commandList["w"] = new CommandWrite(this,buffer);
 			commandList["wq"] = new CommandWriteQuit(this,buffer);  // Always an exception
@@ -149,6 +149,8 @@ namespace org.gnu.ed {
 		}
 
 		public  void NoParam(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
+		public  void HasParam(string param) { if (String.IsNullOrEmpty(param)) throw new Exception("invalid command suffix"); }
+
 		public  void NoAddress(string param) { if (!String.IsNullOrEmpty(param)) throw new Exception("invalid address"); }
 		public  void OrderAddress(Int32[] a) { if (a[1]<a[0]) throw new Exception("invalid address"); }
 		public bool SemiColonAddress(string param) {
@@ -272,13 +274,13 @@ namespace org.gnu.ed {
 
 				if (substrings[1].Length == 0) {
 					Int32 rem = addr.Split('+').Length  -1 ;
-				//	Console.WriteLine("({1}) -> sub: {0}",rem,addr);
+					//	Console.WriteLine("({1}) -> sub: {0}",rem,addr);
 					return currentLine + rem;
 				}
 				else
 				{
 					Int32 rem  = ParseAddress(substrings[1]);
-				//	Console.WriteLine("add: {0}",rem);
+					//	Console.WriteLine("add: {0}",rem);
 					return currentLine + rem;
 				}
 			}
@@ -289,8 +291,6 @@ namespace org.gnu.ed {
 				Regex regex = new Regex("\\-+"); // Split on hyphens.
 				string[] substrings = regex.Split(addr);
 
-			//	Console.WriteLine("Split len: {0}, 0 Len: {1}, 1 len: {2}",substrings.Length,substrings[0].Length,substrings[1].Length);
-
 				if (substrings.Length != 2)
 					throw new Exception("invalid address");
 
@@ -299,38 +299,31 @@ namespace org.gnu.ed {
 
 				if (substrings[1].Length == 0) {
 					Int32 rem = addr.Split('-').Length;
-			//		Console.WriteLine("({1}) -> sub: {0}",rem,addr);
 					return currentLine - rem;
 				}
 				else
 				{
 					Int32 rem  = ParseAddress(substrings[1]);
-				//	Console.WriteLine("sub: {0}",rem);
 					return currentLine - rem;
 				}
 			}
 
-		//	Console.WriteLine("try parse: {0}",addr);
 
 			// is int
 			Int32 num;
 			if (Int32.TryParse(addr,out num))
 			{
-			//	Console.WriteLine("try parse: {0}",num);
 				return num;
 			}
 
-		Console.WriteLine("parsing address: {0}",addr);
+			//Console.WriteLine("parsing address: {0}",addr);
 
 			// next regex
 			if (addr.StartsWith("/") && addr.EndsWith("/"))
 			{
-				Regex regex = new Regex("/(?<re>.+)/");
-				// string[] substrings = regex.Split(addr);
+				Regex regex = new Regex("/.*/");
 
 				MatchCollection regMatch = regex.Matches(addr);
-			// MatchCollection address = rangeAddress.Matches(line);
-			// Report the number of matches found.
 
 				if (regMatch.Count == 1) {
 					Match command = regMatch[0];
@@ -341,23 +334,18 @@ namespace org.gnu.ed {
 					// for line = current to $
 					for (int ll = currentLine; ll<=buffer.GetLineLength(); ll++)
 					{
-						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
-						if (lineMatch.Count >0)
+						if (lineReg.IsMatch(buffer.GetLine(ll)))
 							return ll;
 					}
 
-						// if regex match buffer[line]  return line
+					// if regex match buffer[line]  return line
 					for (int ll = 1; ll<currentLine; ll++)
 					{
-						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
-						if (lineMatch.Count >0)
+						if (lineReg.IsMatch(buffer.GetLine(ll)))
 							return ll;
 					}
 
-					// for line = 1 to current-1 
-						// if regex ....
-
-						throw new Exception("no match");
+					throw new Exception("no match");
 
 				}
 			}
@@ -379,23 +367,16 @@ namespace org.gnu.ed {
 
 					Regex lineReg = new Regex(cmd);
 
-					// for line = current-1 to 1
-						// if regex match buffer[line]  return line
-					// for line = $ to current
-						// if regex ....
-
 					for (int ll = currentLine-1; ll>0; ll--)
 					{
-						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
-						if (lineMatch.Count >0)
+						if (lineReg.IsMatch(buffer.GetLine(ll)))
 							return ll;
 					}
 
 						// if regex match buffer[line]  return line
 					for (int ll = buffer.GetLineLength(); ll>=currentLine; ll--)
 					{
-						MatchCollection lineMatch = lineReg.Matches(buffer.GetLine(ll));
-						if (lineMatch.Count >0)
+						if (lineReg.IsMatch(buffer.GetLine(ll)))
 							return ll;
 					}
 
@@ -404,8 +385,6 @@ namespace org.gnu.ed {
 
 				}
 			}
-
-
 
 		//	Console.WriteLine("starts with: {0}",addr);
 

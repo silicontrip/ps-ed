@@ -36,7 +36,7 @@ namespace org.gnu.ed {
 		protected Controller con;
 		protected Document doc;
 		public abstract void init (string start, string param);
-		public abstract Command parse (string Line);
+		public virtual Command parse (string Line) { return con.GetCommand("command"); }
 
 	}
 
@@ -61,7 +61,7 @@ namespace org.gnu.ed {
 			public override Command parse(string line)
 			{
 
-				//	Console.WriteLine("command parser -> "+ line);
+					// Console.WriteLine("command parser -> "+ line);
 
 					GroupCollection gc = con.ParseCommand(line);
 
@@ -69,7 +69,6 @@ namespace org.gnu.ed {
 					string cmdRange = gc["range"].Value;
 					// string cmdEnd = gc["end"].Value;
 					string cmdParam = gc["parameter"].Value;
-
 
 					Console.WriteLine("command -> " + cmd);
 					Console.WriteLine("  range -> " + cmdRange);
@@ -100,13 +99,6 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-//				Console.WriteLine("Command Append Initialise");
-
-			// perhaps make these into a strategy
-
-				// call this the;
-				// con.NoParamSingleCurrent
-
 				con.NoParam(param);
 				addressRange = con.ParseRange(addr,".",1);
 
@@ -117,8 +109,6 @@ namespace org.gnu.ed {
 			public override Command parse (string line) {
 
 				//Console.WriteLine("Command Append parse -> " + line);
-
-
 		//		if (!String.IsNullOrEmpty(line))
 				if (line != null)
 				{
@@ -393,6 +383,83 @@ namespace org.gnu.ed {
  ** the 'g' command. The other commands of command-list must appear on separate lines. All lines of a multi-line command-list except the last line must be terminated with a backslash ('\'). Any commands are allowed, except for 'g', 'G', 'v', and 'V'. The '.' terminating the input mode of commands 'a', 'c', and 'i' can be omitted if it would be the last line of command-list. By default, a newline alone in command-list is equivalent to a 'p' command. If ed is invoked with the command-line option '-G', then a newline in command-list is equivalent to a '.+1p' command. |
  **/
 
+		public class CommandGlobal : Command {
+			private List<string> commandList;
+			private List<Int32> markedLines;
+			private Boolean exitLoop;
+
+			public CommandGlobal (Controller c, Document d) {
+				doc = d;
+				con = c; 
+				commandList = new List<string>();
+				markedLines = new List<Int32>();
+				exitLoop = false;
+			}
+
+			public override void init (string addr, string param)
+			{
+				con.HasParam(param);
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+				con.OrderAddress(addressRange);
+
+				IEnumerable<string> paramParse = con.EscapedSplit(param,"/",'\\');
+
+/*
+				Console.WriteLine("parameter split: {0}",paramParse.Count());
+				Console.WriteLine("parameter split 1: {0}",paramParse.ElementAt(0));
+				Console.WriteLine("parameter split 2: {0}",paramParse.ElementAt(1));
+				Console.WriteLine("parameter split 3: {0}",paramParse.ElementAt(2));
+*/
+				Regex filterReg = new Regex(paramParse.ElementAt(1));
+
+				commandList.Add(paramParse.ElementAt(2));
+
+				for (Int32 ll = addressRange[0]; ll <= addressRange[1]; ll++)
+				{
+					if (filterReg.IsMatch(doc.GetLine(ll)))
+					{
+						markedLines.Add(ll);
+					}
+				}
+				if (paramParse.ElementAt(2).EndsWith("\\"))
+				{
+					exitLoop=false;
+				} else {
+					exitLoop=true;
+				}
+				// return this;
+			}
+
+			public override Command parse (string line) {
+
+				if (exitLoop)
+					return con.GetCommand("command");
+
+				if (line != null)
+				{
+					if (line.EndsWith("\\")) {
+						commandList.Add(line);
+						return this;
+					} else {
+						commandList.Add(line);
+						foreach (Int32 ll in markedLines)
+						{
+							con.SetCurrentLine(ll);
+							Command cc = con.GetCommand("command");
+							foreach (string cl in commandList)
+							{
+								// remove trailing \
+								string clt = cl.TrimEnd('\\');
+								cc = cc.parse(cl);
+							}
+						}
+						return con.GetCommand("command");
+					}
+				}
+				return this;
+			}
+		}
+
 /** GLOBAL INTERACTIVE | (1,$)G/re/ |
  **Interactive global command.** 
  ** Interactively edits the addressed lines matching a regular expression re. 
@@ -404,6 +471,67 @@ namespace org.gnu.ed {
  ** A newline alone acts as an empty command list. 
  ** A single '&' repeats the last non-empty command list. |
  **/
+
+		public class CommandGlobalInteractive : Command {
+			private List<Int32> markedLines;
+			private Boolean exitLoop;
+			private Int32 currentCount;
+			private Command currentCommand;
+
+			public CommandGlobalInteractive (Controller c, Document d) {
+				doc = d;
+				con = c; 
+				markedLines = new List<Int32>();
+			}
+
+			public override void init (string addr, string param)
+			{
+				con.HasParam(param);
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+				con.OrderAddress(addressRange);
+
+				IEnumerable<string> paramParse = con.EscapedSplit(param,"/",'\\');
+
+				currentCommand = con.GetCommand("command");
+
+				Console.WriteLine("parameter split: {0}",paramParse.Count());
+				Console.WriteLine("parameter split 1: {0}",paramParse.ElementAt(0));
+				Console.WriteLine("parameter split 2: {0}",paramParse.ElementAt(1));
+
+				Regex filterReg = new Regex(paramParse.ElementAt(1));
+
+				for (Int32 ll = addressRange[0]; ll <= addressRange[1]; ll++)
+				{
+					if (filterReg.IsMatch(doc.GetLine(ll)))
+					{
+						markedLines.Add(ll);
+					}
+				}
+				Console.WriteLine("{0}",doc.GetLine(markedLines[0]));
+				// return this;
+			}
+
+			public override Command parse (string line) {
+
+				if (line != null)
+				{
+					con.SetCurrentLine(markedLines[currentCount++]);
+					string clt = line.TrimEnd('\\');
+
+					// Command cc = con.GetCommand("command");
+					currentCommand = currentCommand.parse(clt);
+
+					Console.WriteLine(doc.GetLine(markedLines[currentCount]));
+
+					if (line.EndsWith("\\")) 
+						return this;
+					else
+						return con.GetCommand("command");
+				}
+				return this;
+			}
+		}
+
 
 /** HELP | h | 
  **Help.** 
@@ -581,8 +709,9 @@ namespace org.gnu.ed {
 				// SingleCharParamSingleCurrent
 
 				//con.NoParam(param);
-				if (param.Length != 1) 
-					throw new Exception("invalid command suffix"); 
+				con.HasParam(param);
+//				if (param.Length != 1) 
+//					throw new Exception("invalid command suffix"); 
 
 				addressRange = con.ParseRange(addr,".",1);
 
@@ -654,7 +783,6 @@ namespace org.gnu.ed {
  It is an error if the destination address falls within the range of lines to be moved. 
  The current address is set to the new address of the last line moved. |
  **/
-
 		public class CommandMove : Command {
 
 			//private List<string> buffer;
@@ -781,8 +909,6 @@ namespace org.gnu.ed {
  the command prompt is by default turned off. 
  The default prompt string is an asterisk ('*'). 
  **/
-
-
 		public class CommandPrompt : Command {
 
 			public CommandPrompt(Controller c, Document d) {
@@ -964,7 +1090,7 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				Console.WriteLine("substitute:  {0}  ||  {1}",addr,param);
+				Console.WriteLine("substitute: {0} ||  {1}",addr,param);
 
 				if (param.Length ==0 )
 				{
@@ -1001,8 +1127,6 @@ namespace org.gnu.ed {
 
 
 				Console.Write ("{0}",subCommand);
-
-
 			}
 			public override Command parse (string line) {
 				return con.GetCommand("command");
@@ -1083,9 +1207,148 @@ namespace org.gnu.ed {
  ** This is similar to the 'g' command except that it applies command-list to each of the addressed lines not matching the regular expression re. |
 **/
 
+		public class CommandInverseGlobal : Command {
+			private List<string> commandList;
+			private List<Int32> markedLines;
+			private Boolean exitLoop;
+
+			public CommandInverseGlobal (Controller c, Document d) {
+				doc = d;
+				con = c; 
+				commandList = new List<string>();
+				markedLines = new List<Int32>();
+				exitLoop = false;
+			}
+
+			public override void init (string addr, string param)
+			{
+				con.HasParam(param);
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+				con.OrderAddress(addressRange);
+
+				IEnumerable<string> paramParse = con.EscapedSplit(param,"/",'\\');
+
+				Console.WriteLine("parameter split: {0}",paramParse.Count());
+
+				Console.WriteLine("parameter split 1: {0}",paramParse.ElementAt(0));
+				Console.WriteLine("parameter split 2: {0}",paramParse.ElementAt(1));
+				Console.WriteLine("parameter split 3: {0}",paramParse.ElementAt(2));
+
+				Regex filterReg = new Regex(paramParse.ElementAt(1));
+
+				commandList.Add(paramParse.ElementAt(2));
+
+				for (Int32 ll = addressRange[0]; ll <= addressRange[1]; ll++)
+				{
+					if (!filterReg.IsMatch(doc.GetLine(ll)))
+					{
+						markedLines.Add(ll);
+					}
+				}
+				if (paramParse.ElementAt(2).EndsWith("\\"))
+				{
+					exitLoop=false;
+				} else {
+					exitLoop=true;
+				}
+				// return this;
+			}
+
+			public override Command parse (string line) {
+
+				if (exitLoop)
+					return con.GetCommand("command");
+
+				if (line != null)
+				{
+					if (line.EndsWith("\\")) {
+						commandList.Add(line);
+						return this;
+					} else {
+						commandList.Add(line);
+						foreach (Int32 ll in markedLines)
+						{
+							con.SetCurrentLine(ll);
+							Command cc = con.GetCommand("command");
+							foreach (string cl in commandList)
+							{
+								// remove trailing \
+								string clt = cl.TrimEnd('\\');
+								cc = cc.parse(cl);
+							}
+						}
+						return con.GetCommand("command");
+					}
+				}
+				return this;
+			}
+		}
+
 /** INVERE GLOBAL INTERACTIVE | (1,$)V/re/ | 
  ** This is similar to the 'G' command except that it interactively edits the addressed lines not matching the regular expression re. |
  **/
+
+		public class CommandInverseGlobalInteractive : Command {
+			private List<Int32> markedLines;
+			private Boolean exitLoop;
+			private Int32 currentCount;
+			private Command currentCommand;
+
+			public CommandInverseGlobalInteractive (Controller c, Document d) {
+				doc = d;
+				con = c; 
+				markedLines = new List<Int32>();
+			}
+
+			public override void init (string addr, string param)
+			{
+				con.HasParam(param);
+				addressRange = con.ParseRangeDuplicate(addr,"1,$");
+				con.OrderAddress(addressRange);
+
+				IEnumerable<string> paramParse = con.EscapedSplit(param,"/",'\\');
+
+				currentCommand = con.GetCommand("command");
+
+				Console.WriteLine("parameter split: {0}",paramParse.Count());
+				Console.WriteLine("parameter split 1: {0}",paramParse.ElementAt(0));
+				Console.WriteLine("parameter split 2: {0}",paramParse.ElementAt(1));
+
+				Regex filterReg = new Regex(paramParse.ElementAt(1));
+
+				for (Int32 ll = addressRange[0]; ll <= addressRange[1]; ll++)
+				{
+					if (!filterReg.IsMatch(doc.GetLine(ll)))
+					{
+						markedLines.Add(ll);
+					}
+				}
+				Console.WriteLine("{0}",doc.GetLine(markedLines[0]));
+				// return this;
+			}
+
+			public override Command parse (string line) {
+
+				if (line != null)
+				{
+					con.SetCurrentLine(markedLines[currentCount++]);
+					string clt = line.TrimEnd('\\');
+
+					// Command cc = con.GetCommand("command");
+					currentCommand = currentCommand.parse(clt);
+
+					Console.WriteLine(doc.GetLine(markedLines[currentCount]));
+
+					if (line.EndsWith("\\")) 
+						return this;
+					else
+						return con.GetCommand("command");
+				}
+				return this;
+			}
+		}
+
+
 
 /** WRITE | (1,$)w file | 
  ** Writes the addressed lines to file. 
