@@ -57,7 +57,7 @@ namespace org.gnu.ed {
 
 			currentLine = d.GetLineLength();
 
-			ui.WriteLine(String.Format("{0}",d.GetCharacterLength()));
+			//ui.WriteLine(String.Format("{0}",d.GetCharacterLength()));
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 			parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfgGhHijklmnpPqQrstuvVwWxyz!#=]|wq|$)(?<parameter>[ /0-9].*)*$",RegexOptions.Compiled);

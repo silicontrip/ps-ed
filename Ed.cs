@@ -47,6 +47,8 @@ using System.Management.Automation.Host;
 				try {
 					doc.SetFilename(path);
 					doc.ReadFromFile(path);
+					ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
+
 				} catch (Exception e) {
 					ui.WriteLine(e.Message);
 				}
