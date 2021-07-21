@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Management.Automation;
 using System.Management.Automation.Host;
 // using System.Runtime;
 using System.Text.RegularExpressions;
+
 // using Microsoft.PowerShell;
 
 //using Document;
@@ -55,54 +57,54 @@ namespace org.gnu.ed {
 
 			currentLine = d.GetLineLength();
 
-			Console.WriteLine(d.GetCharacterLength());
+			ui.WriteLine(String.Format("{0}",d.GetCharacterLength()));
 
 			//Regex r = new Regex(@"^(?<start>\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<seperator>[,;])*(?<end>\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*(?<command>[acdeEfghHijklmnpPqQrstuvVwWxyz!#=])(?<parameter> .*)*$",RegexOptions.Compiled);
 			parseRegex = new Regex(@"^(?<range>(\,|\;|\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*([,;])*(\.|\$|\d+|\+\d+|-\d+|\++|\-+|/[^,;]*/|\?[^,;]*\?|'[a-z])*)(?<command>[acdeEfgGhHijklmnpPqQrstuvVwWxyz!#=]|wq|$)(?<parameter>[ /0-9].*)*$",RegexOptions.Compiled);
 
-			currentMode = new CommandMode(this, buffer);
+			currentMode = new CommandMode(this, buffer,ui);
 
 			commandList = new Dictionary<string,Command>();
 			commandList["command"] = currentMode;
-			commandList["a"] = new CommandAppend(this,buffer);
-			commandList["c"] = new CommandChange(this,buffer);
-			commandList["d"] = new CommandDelete(this,buffer);
-			commandList["e"] = new CommandEdit(this,buffer);
-			commandList["E"] = new CommandEditUnconditional(this,buffer);
+			commandList["a"] = new CommandAppend(this,buffer,ui);
+			commandList["c"] = new CommandChange(this,buffer,ui);
+			commandList["d"] = new CommandDelete(this,buffer,ui);
+			commandList["e"] = new CommandEdit(this,buffer,ui);
+			commandList["E"] = new CommandEditUnconditional(this,buffer,ui);
 
-			commandList["g"] = new CommandGlobal(this,buffer);
-			commandList["G"] = new CommandGlobalInteractive(this,buffer);
+			commandList["g"] = new CommandGlobal(this,buffer,ui);
+			commandList["G"] = new CommandGlobalInteractive(this,buffer,ui);
 
-			commandList["h"] = new CommandHelp(this,buffer);
-			commandList["H"] = new CommandHelpToggle(this,buffer);
-			commandList["i"] = new CommandInsert(this,buffer);
-			commandList["j"] = new CommandJoin(this,buffer);
-			commandList["k"] = new CommandMark(this,buffer);
-			commandList["l"] = new CommandList(this,buffer);
-			commandList["m"] = new CommandMove(this,buffer);
-			commandList["n"] = new CommandNumber(this,buffer);
-			commandList["p"] = new CommandPrint(this,buffer);
-			commandList["P"] = new CommandPrompt(this,buffer);
-			commandList["q"] = new CommandQuit(this,buffer);
-			commandList["Q"] = new CommandQuitForce(this,buffer);
-			commandList["r"] = new CommandRead(this,buffer);
+			commandList["h"] = new CommandHelp(this,buffer,ui);
+			commandList["H"] = new CommandHelpToggle(this,buffer,ui);
+			commandList["i"] = new CommandInsert(this,buffer,ui);
+			commandList["j"] = new CommandJoin(this,buffer,ui);
+			commandList["k"] = new CommandMark(this,buffer,ui);
+			commandList["l"] = new CommandList(this,buffer,ui);
+			commandList["m"] = new CommandMove(this,buffer,ui);
+			commandList["n"] = new CommandNumber(this,buffer,ui);
+			commandList["p"] = new CommandPrint(this,buffer,ui);
+			commandList["P"] = new CommandPrompt(this,buffer,ui);
+			commandList["q"] = new CommandQuit(this,buffer,ui);
+			commandList["Q"] = new CommandQuitForce(this,buffer,ui);
+			commandList["r"] = new CommandRead(this,buffer,ui);
 
-			commandList["s"] = new CommandSubstituteRedirect(this,buffer);
+			commandList["s"] = new CommandSubstituteRedirect(this,buffer,ui);
 
-			commandList["t"] = new CommandTransfer(this,buffer);
+			commandList["t"] = new CommandTransfer(this,buffer,ui);
 			commandList["u"] = null;
-			commandList["v"] = new CommandInverseGlobal(this,buffer);
-			commandList["V"] = new CommandInverseGlobalInteractive(this,buffer);
+			commandList["v"] = new CommandInverseGlobal(this,buffer,ui);
+			commandList["V"] = new CommandInverseGlobalInteractive(this,buffer,ui);
 
-			commandList["w"] = new CommandWrite(this,buffer);
-			commandList["wq"] = new CommandWriteQuit(this,buffer);  // Always an exception
+			commandList["w"] = new CommandWrite(this,buffer,ui);
+			commandList["wq"] = new CommandWriteQuit(this,buffer,ui);  // Always an exception
 
-			commandList["x"] = new CommandPaste(this,buffer);
-			commandList["y"] = new CommandYank(this,buffer);
+			commandList["x"] = new CommandPaste(this,buffer,ui);
+			commandList["y"] = new CommandYank(this,buffer,ui);
 
-			commandList["#"] = new CommandComment(this,buffer);
-			commandList["="] = new CommandLine(this,buffer);
-			commandList[""] = new CommandNull(this,buffer);
+			commandList["#"] = new CommandComment(this,buffer,ui);
+			commandList["="] = new CommandLine(this,buffer,ui);
+			commandList[""] = new CommandNull(this,buffer,ui);
 
 			  // needs document, controller object
 		}
@@ -399,7 +401,7 @@ namespace org.gnu.ed {
 				}
 			}
 
-			Console.WriteLine("no match: {0}",addr);
+			ui.WriteLine(String.Format("no match: {0}",addr));
 			throw new Exception("invalid address");
 
 		}
@@ -421,9 +423,9 @@ namespace org.gnu.ed {
 				{
 					lastError = e.Message;
 					if (verboseErrorMode) {
-						Console.WriteLine(lastError);
+						ui.WriteLine(lastError);
 					} else {
-						Console.WriteLine("?");
+						ui.WriteLine("?");
 					}
 				}
 			}

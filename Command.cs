@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Management.Automation.Host;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -10,9 +11,9 @@ namespace org.gnu.ed {
 /*
 		public class CommandExample : Command {
 
-			public CommandExample (Controller c, Document d) {
+			public CommandExample (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -32,7 +33,7 @@ namespace org.gnu.ed {
 	public abstract class Command {
 
 		protected Int32[] addressRange;
-
+		protected PSHostUserInterface ui;
 		protected Controller con;
 		protected Document doc;
 		public abstract void init (string start, string param);
@@ -43,9 +44,10 @@ namespace org.gnu.ed {
 		public class CommandMode : Command {
 			// A bunch of stuff
 
-			public CommandMode(Controller c, Document d) {
+			public CommandMode(Controller c, Document d, PSHostUserInterface u) {
 			// do we need these?
-				con = c;  // yes
+				con = c;  
+				ui = u;  // yes
 			//	thisDocument = d;  // maybe // not
 
 			}
@@ -91,9 +93,9 @@ namespace org.gnu.ed {
 		public class CommandAppend : Command {
 			private List<string> buffer;
 
-			public CommandAppend(Controller c, Document d) {
+			public CommandAppend(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -108,7 +110,6 @@ namespace org.gnu.ed {
 
 			public override Command parse (string line) {
 
-				//Console.WriteLine("Command Append parse -> " + line);
 		//		if (!String.IsNullOrEmpty(line))
 				if (line != null)
 				{
@@ -155,9 +156,9 @@ namespace org.gnu.ed {
 			private List<string> buffer;
 		//	private Int32[] initAddressRange;  // parent ivar... keep getting tricked by this.
 
-			public CommandChange(Controller c, Document d) {
+			public CommandChange(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -221,9 +222,9 @@ namespace org.gnu.ed {
 
 		public class CommandDelete : Command {
 
-			public CommandDelete(Controller c, Document d) {
+			public CommandDelete(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -265,9 +266,9 @@ namespace org.gnu.ed {
  **/
 		public class CommandEdit : Command {
 
-			public CommandEdit(Controller c, Document d) {
+			public CommandEdit(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -290,7 +291,7 @@ namespace org.gnu.ed {
 				doc.SetFilename(param);
 				con.SetCurrentLine(doc.GetLineLength());
 
-				Console.WriteLine(doc.GetCharacterLength());
+				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
 			}
 
 			public override Command parse (string line) {
@@ -306,9 +307,9 @@ namespace org.gnu.ed {
 
 		public class CommandEditUnconditional : Command {
 
-			public CommandEditUnconditional(Controller c, Document d) {
+			public CommandEditUnconditional(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -328,7 +329,7 @@ namespace org.gnu.ed {
 				doc.ReadFromFile(param);
 				con.SetCurrentLine(doc.GetLineLength());
 
-				Console.WriteLine(doc.GetCharacterLength());
+				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
 			}
 
 			public override Command parse (string line) {
@@ -344,9 +345,9 @@ namespace org.gnu.ed {
 
 		public class CommandFilename : Command {
 
-			public CommandFilename (Controller c, Document d) {
+			public CommandFilename (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -357,7 +358,7 @@ namespace org.gnu.ed {
 				{
 					doc.SetFilename(param);
 				} 
-				Console.WriteLine(doc.GetFilename());
+				ui.WriteLine(doc.GetFilename());
 				
 			}
 
@@ -388,9 +389,9 @@ namespace org.gnu.ed {
 			private List<Int32> markedLines;
 			private Boolean exitLoop;
 
-			public CommandGlobal (Controller c, Document d) {
+			public CommandGlobal (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 				commandList = new List<string>();
 				markedLines = new List<Int32>();
 				exitLoop = false;
@@ -474,13 +475,13 @@ namespace org.gnu.ed {
 
 		public class CommandGlobalInteractive : Command {
 			private List<Int32> markedLines;
-			private Boolean exitLoop;
+			//private Boolean exitLoop;
 			private Int32 currentCount;
 			private Command currentCommand;
 
-			public CommandGlobalInteractive (Controller c, Document d) {
+			public CommandGlobalInteractive (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 				markedLines = new List<Int32>();
 			}
 
@@ -507,7 +508,7 @@ namespace org.gnu.ed {
 						markedLines.Add(ll);
 					}
 				}
-				Console.WriteLine("{0}",doc.GetLine(markedLines[0]));
+				ui.WriteLine(String.Format("{0}",doc.GetLine(markedLines[0])));
 				// return this;
 			}
 
@@ -521,7 +522,7 @@ namespace org.gnu.ed {
 					// Command cc = con.GetCommand("command");
 					currentCommand = currentCommand.parse(clt);
 
-					Console.WriteLine(doc.GetLine(markedLines[currentCount]));
+					ui.WriteLine(doc.GetLine(markedLines[currentCount]));
 
 					if (line.EndsWith("\\")) 
 						return this;
@@ -540,16 +541,16 @@ namespace org.gnu.ed {
 
 		public class CommandHelp : Command {
 
-			public CommandHelp(Controller c, Document d) {
+			public CommandHelp(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
 			{
 				con.NoAddress(addr);
 				con.NoParam(param);
-				Console.WriteLine(con.GetError());
+				ui.WriteLine(con.GetError());
 			}
 
 			public override Command parse (string line) {
@@ -565,9 +566,9 @@ namespace org.gnu.ed {
 
 		public class CommandHelpToggle : Command {
 
-			public CommandHelpToggle(Controller c, Document d) {
+			public CommandHelpToggle(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -595,9 +596,9 @@ namespace org.gnu.ed {
 		public class CommandInsert : Command {
 			private List<string> buffer;
 
-			public CommandInsert(Controller c, Document d) {
+			public CommandInsert(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -650,9 +651,9 @@ namespace org.gnu.ed {
 
 		public class CommandJoin : Command {
 
-			public CommandJoin(Controller c, Document d) {
+			public CommandJoin(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -699,9 +700,9 @@ namespace org.gnu.ed {
 
 		public class CommandMark : Command {
 
-			public CommandMark(Controller c, Document d) {
+			public CommandMark(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -734,9 +735,9 @@ namespace org.gnu.ed {
 
 		public class CommandList : Command {
 
-			public CommandList(Controller c, Document d) {
+			public CommandList(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -764,7 +765,7 @@ namespace org.gnu.ed {
 					// it is suffixed with a \
 					// hard newlines are inserted
 
-					Console.WriteLine("{0}$",ll);
+					ui.WriteLine(String.Format("{0}$",ll));
 
 				}
 				con.SetCurrentLine(addressRange[1]);
@@ -787,9 +788,9 @@ namespace org.gnu.ed {
 
 			//private List<string> buffer;
 
-			public CommandMove(Controller c, Document d) {
+			public CommandMove(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -826,9 +827,9 @@ namespace org.gnu.ed {
 
 		public class CommandNumber : Command {
 
-			public CommandNumber(Controller c, Document d) {
+			public CommandNumber(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -849,7 +850,7 @@ namespace org.gnu.ed {
 					// it is suffixed with a \
 					// hard newlines are inserted
 
-					Console.WriteLine("{1}\t{0}",ll,counter++);					
+					ui.WriteLine(String.Format("{1}\t{0}",ll,counter++));					
 
 				}
 				con.SetCurrentLine(addressRange[1]);
@@ -867,9 +868,9 @@ namespace org.gnu.ed {
 
 		public class CommandPrint : Command {
 
-			public CommandPrint(Controller c, Document d) {
+			public CommandPrint(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -892,7 +893,7 @@ namespace org.gnu.ed {
 					// it is suffixed with a \
 					// hard newlines are inserted
 
-					Console.WriteLine("{0}",ll);					
+					ui.WriteLine(String.Format("{0}",ll));					
 
 				}
 				con.SetCurrentLine(addressRange[1]);
@@ -911,9 +912,9 @@ namespace org.gnu.ed {
  **/
 		public class CommandPrompt : Command {
 
-			public CommandPrompt(Controller c, Document d) {
+			public CommandPrompt(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -938,9 +939,9 @@ namespace org.gnu.ed {
 
 		public class CommandQuit : Command {
 
-			public CommandQuit(Controller c, Document d) {
+			public CommandQuit(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -965,9 +966,9 @@ namespace org.gnu.ed {
 
 		public class CommandQuitForce : Command {
 
-			public CommandQuitForce(Controller c, Document d) {
+			public CommandQuitForce(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1000,9 +1001,9 @@ namespace org.gnu.ed {
 
 		public class CommandRead : Command {
 
-			public CommandRead(Controller c, Document d) {
+			public CommandRead(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1033,7 +1034,7 @@ namespace org.gnu.ed {
 			Int32 total = 0;
 			foreach (string ss in buffer)
 				total += ss.Length + 1;
-			Console.WriteLine(total);
+			ui.WriteLine(String.Format("{0}",total));
 
 
 				doc.Append(buffer,addressRange[0]);
@@ -1080,11 +1081,11 @@ namespace org.gnu.ed {
 			Command substituteRepeat;
 		//	private List<string> buffer;
 
-			public CommandSubstituteRedirect(Controller c, Document d) {
+			public CommandSubstituteRedirect(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
-				substitute = new CommandSubstitute(c,d);
-				substituteRepeat = new CommandSubstituteRepeat(c,d);
+				con = c;  ui = u; 
+				substitute = new CommandSubstitute(c,d,u);
+				substituteRepeat = new CommandSubstituteRepeat(c,d,u);
 			}
 
 			public override void init (string addr, string param)
@@ -1107,9 +1108,9 @@ namespace org.gnu.ed {
 		}
 
 		public class CommandSubstitute : Command {
-			public CommandSubstitute(Controller c, Document d) {
+			public CommandSubstitute(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1135,9 +1136,9 @@ namespace org.gnu.ed {
 		}
 
 		public class CommandSubstituteRepeat : Command {
-			public CommandSubstituteRepeat(Controller c, Document d) {
+			public CommandSubstituteRepeat(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1166,9 +1167,9 @@ namespace org.gnu.ed {
 
 			//private List<string> buffer;
 
-			public CommandTransfer(Controller c, Document d) {
+			public CommandTransfer(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1212,9 +1213,9 @@ namespace org.gnu.ed {
 			private List<Int32> markedLines;
 			private Boolean exitLoop;
 
-			public CommandInverseGlobal (Controller c, Document d) {
+			public CommandInverseGlobal (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 				commandList = new List<string>();
 				markedLines = new List<Int32>();
 				exitLoop = false;
@@ -1290,13 +1291,13 @@ namespace org.gnu.ed {
 
 		public class CommandInverseGlobalInteractive : Command {
 			private List<Int32> markedLines;
-			private Boolean exitLoop;
+		//	private Boolean exitLoop;
 			private Int32 currentCount;
 			private Command currentCommand;
 
-			public CommandInverseGlobalInteractive (Controller c, Document d) {
+			public CommandInverseGlobalInteractive (Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 				markedLines = new List<Int32>();
 			}
 
@@ -1323,7 +1324,7 @@ namespace org.gnu.ed {
 						markedLines.Add(ll);
 					}
 				}
-				Console.WriteLine("{0}",doc.GetLine(markedLines[0]));
+				ui.WriteLine(String.Format("{0}",doc.GetLine(markedLines[0])));
 				// return this;
 			}
 
@@ -1337,7 +1338,7 @@ namespace org.gnu.ed {
 					// Command cc = con.GetCommand("command");
 					currentCommand = currentCommand.parse(clt);
 
-					Console.WriteLine(doc.GetLine(markedLines[currentCount]));
+					ui.WriteLine(doc.GetLine(markedLines[currentCount]));
 
 					if (line.EndsWith("\\")) 
 						return this;
@@ -1367,9 +1368,9 @@ namespace org.gnu.ed {
 
 		public class CommandWrite : Command {
 
-			public CommandWrite(Controller c, Document d) {
+			public CommandWrite(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1405,9 +1406,9 @@ namespace org.gnu.ed {
 
 		public class CommandWriteQuit : Command {
 
-			public CommandWriteQuit(Controller c, Document d) {
+			public CommandWriteQuit(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1447,9 +1448,9 @@ namespace org.gnu.ed {
 
 		public class CommandPaste : Command {
 
-			public CommandPaste(Controller c, Document d) {
+			public CommandPaste(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1483,9 +1484,9 @@ namespace org.gnu.ed {
 
 		public class CommandYank : Command {
 
-			public CommandYank(Controller c, Document d) {
+			public CommandYank(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1541,9 +1542,9 @@ namespace org.gnu.ed {
 
 			//private List<string> buffer;
 
-			public CommandComment(Controller c, Document d) {
+			public CommandComment(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1578,9 +1579,9 @@ namespace org.gnu.ed {
 
 			//private List<string> buffer;
 
-			public CommandLine(Controller c, Document d) {
+			public CommandLine(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1591,7 +1592,7 @@ namespace org.gnu.ed {
 
 				// con.NoParam(param);  // should these be in the controller class
 				addressRange = con.ParseRange(addr,"$",1);
-				Console.WriteLine(addressRange[0]);
+				ui.WriteLine(String.Format("{0}",addressRange[0]));
 			}
 
 			public override Command parse (string line) {
@@ -1610,9 +1611,9 @@ namespace org.gnu.ed {
 
 			//private List<string> buffer;
 
-			public CommandNull(Controller c, Document d) {
+			public CommandNull(Controller c, Document d, PSHostUserInterface u) {
 				doc = d;
-				con = c; 
+				con = c;  ui = u; 
 			}
 
 			public override void init (string addr, string param)
@@ -1620,7 +1621,7 @@ namespace org.gnu.ed {
 				con.NoParam(param);
 
 				addressRange = con.ParseRange(addr,"+1",1);
-				Console.WriteLine(doc.GetLine(addressRange[0]));
+				ui.WriteLine(doc.GetLine(addressRange[0]));
 
 				con.SetCurrentLine(addressRange[0]);
 			}
