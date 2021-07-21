@@ -42,7 +42,7 @@ using System.Management.Automation.Host;
 			PSHostUserInterface ui = Host.UI;
 
 
-			if (String.IsNullOrEmpty(path))
+			if (!String.IsNullOrEmpty(path))
 			{
 				try {
 					doc.SetFilename(path);
