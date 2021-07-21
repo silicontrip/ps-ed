@@ -38,25 +38,22 @@ using System.Management.Automation.Host;
         protected override void BeginProcessing()
         {
 
-			Document doc;
+			Document doc = new Document();
+			PSHostUserInterface ui = Host.UI;
 
-		//	Console.WriteLine ("path argument: {0}",path);
 
 			if (String.IsNullOrEmpty(path))
 			{
-		//		Console.WriteLine ("new doc empty");
-				doc = new Document();
-			} else {
-		//		Console.WriteLine ("new doc path");
-				doc= new Document(path);
+				try {
+					doc.SetFilename(path);
+					doc.ReadFromFile(path);
+				} catch (Exception e) {
+					ui.WriteLine(e.Message);
+				}
 			}
 
-			PSHostUserInterface ui = Host.UI;
 			cc = new Controller(ui,doc);  // if this were a multi document app, this would be new
 			// I must be preparing for a multi document app...
-		//	Console.WriteLine ("new controller: {0}",cc);
-
-		//	cc.SetFilename(path);
 
 			if (String.IsNullOrEmpty(prompt))
 			{

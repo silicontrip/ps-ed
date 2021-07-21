@@ -1391,6 +1391,8 @@ namespace org.gnu.ed {
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
 				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
+
 				con.Saved();
 			}
 
@@ -1429,6 +1431,7 @@ namespace org.gnu.ed {
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
 				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
 				con.SetExit(true);
 
 			}
