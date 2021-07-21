@@ -24,7 +24,11 @@ namespace org.gnu.ed {
 		public Document(string filename)
 		{
 			readWriteEncoding = new ASCIIEncoding();
-			buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));
+			try {
+				buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));
+			} catch (FileNotFoundException) {
+				buffer = new List<string>();
+			}
 			this.filename = filename;
 		}
 
