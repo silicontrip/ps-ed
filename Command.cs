@@ -1091,7 +1091,7 @@ namespace org.gnu.ed {
 			public override void init (string addr, string param)
 			{
 
-				Console.WriteLine("substitute: {0} ||  {1}",addr,param);
+				//Console.WriteLine("substitute: {0} || {1}",addr,param);
 
 				if (param.Length ==0 )
 				{
@@ -1115,19 +1115,44 @@ namespace org.gnu.ed {
 
 			public override void init (string addr, string param)
 			{
+
+				addressRange = con.ParseRangeDuplicate(addr,".,.");
+				con.OrderAddress(addressRange);
+
 				IEnumerable<string>splitCommand = con.EscapedSplit(param,"/",'\\');
 
 				List<string> subCommand = Enumerable.ToList(splitCommand);
 				Int32 subLength = subCommand.Count;
-				Console.Write("sub params: {0}",subLength);
+			//	Console.WriteLine("sub params: {0}",subLength);
 
-				if (subLength < 2 || subLength > 3)
+				//if (subLength < 2 || subLength > 3)
+				if (subLength != 4)
 					throw new Exception("invalid command suffix");
 				
-				string match = subCommand[0].Replace("\\/","/");
+				string search = subCommand[1].Replace("\\/","/");
+				string replace = subCommand[2].Replace("\\/","/");
+				string flags = subCommand[3];
+
+				Regex searchReg = new Regex(search,RegexOptions.Compiled);
+
+				List<string> replaceBuffer = new List<string>();
+				foreach (string ss in doc.GetLines(addressRange))
+				{
+					string nn = searchReg.Replace(ss,replace);
+
+					replaceBuffer.Add(nn);
+				}
+
+				// con.SetCutBuffer(doc.GetLines(addressRange)); // one indexed
+				doc.Delete(addressRange);
+				doc.Insert(replaceBuffer,addressRange[0]);
 
 
-				Console.Write ("{0}",subCommand);
+/*
+				Console.WriteLine("Match: {0}",match);
+				foreach (string ss in subCommand)
+					Console.Write ("{0} :: ",ss);
+*/
 			}
 			public override Command parse (string line) {
 				return con.GetCommand("command");
