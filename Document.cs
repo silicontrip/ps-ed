@@ -25,7 +25,8 @@ namespace org.gnu.ed {
 		{
 			readWriteEncoding = new ASCIIEncoding();
 			try {
-				buffer = new List<string>(File.ReadAllLines(filename,readWriteEncoding));
+				string absoluteFn = Path.GetFullPath(filename);
+				buffer = new List<string>(File.ReadAllLines(absoluteFn,readWriteEncoding));
 			} catch (FileNotFoundException) {
 				buffer = new List<string>();
 			}
@@ -34,6 +35,7 @@ namespace org.gnu.ed {
 
 		public void ReadFromFile (string fn)
 		{
+			string absoluteFn = Path.GetFullPath(fn);
 			buffer = new List<string>(File.ReadAllLines(fn,readWriteEncoding));
 		}
 
@@ -69,9 +71,9 @@ namespace org.gnu.ed {
 
 		public string GetLine(Int32 l) { return buffer[l-1]; }
 		public string GetFilename() { return this.filename; }
+		public string GetAbsoluteFilename() { return Path.GetFullPath(this.filename); }
 		public void SetFilename(string f) { this.filename = f; }
 
-		public List<string>GetLines() { return buffer; }
 		public Int32 GetCharacterLength() 
 		{
 			Int32 total = 0;
@@ -81,6 +83,8 @@ namespace org.gnu.ed {
 		}
 		public Int32 GetLineLength() { return buffer.Count; }
 	//	public bool isUnsaved() { return unsaved; }
+
+		public List<string>GetLines() { return buffer; }
 
 		public List<string> GetLines (Int32 startLine, Int32 endLine) {
 			Int32 count = endLine - startLine + 1;

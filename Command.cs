@@ -1028,7 +1028,7 @@ namespace org.gnu.ed {
 
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
-				List <string> buffer = new List<string>(File.ReadAllLines(localFileName,readWriteEncoding));
+				List <string> buffer = new List<string>(File.ReadAllLines(Path.GetFullPath(localFileName),readWriteEncoding));
 
 	// *** Display number of characters read
 			Int32 total = 0;
@@ -1390,7 +1390,7 @@ namespace org.gnu.ed {
 				List<string> lines = doc.GetLines(addressRange);
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
-				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+				File.WriteAllLines(doc.GetAbsoluteFilename(),lines,readWriteEncoding);
 				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
 
 				con.Saved();
@@ -1430,7 +1430,7 @@ namespace org.gnu.ed {
 				List<string> lines = doc.GetLines(addressRange);
 				Encoding readWriteEncoding = new ASCIIEncoding();
 
-				File.WriteAllLines(doc.GetFilename(),lines,readWriteEncoding);
+				File.WriteAllLines(doc.GetAbsoluteFilename(),lines,readWriteEncoding);
 				ui.WriteLine(String.Format("{0}",doc.GetCharacterLength()));
 				con.SetExit(true);
 
