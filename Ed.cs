@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 
@@ -41,6 +42,10 @@ using System.Management.Automation.Host;
 			Document doc = new Document();
 			PSHostUserInterface ui = Host.UI;
 
+			string current = Directory.GetCurrentDirectory();
+			SessionState ss = new SessionState();
+			Directory.SetCurrentDirectory(ss.Path.CurrentFileSystemLocation.Path);
+
 
 			if (!String.IsNullOrEmpty(path))
 			{
@@ -65,6 +70,8 @@ using System.Management.Automation.Host;
 			}
 			//Console.WriteLine("start");
 			cc.Start();
+			Directory.SetCurrentDirectory(current);
+
 		}
 	}
  }
